@@ -99,27 +99,27 @@ const navigation = () => {
       // action: 'read',
       // subject: 'reportLog-p',
       children: [
-        {
-          title: 'ReportLog',
-          action: 'read',
-          subject: 'reportLog-p',
-          path: '/reportlog',
-          icon: 'material-symbols:history',
-        },
-        {
-          path: '/report',
-          action: 'read',
-          subject: 'report-p',
-          title: 'Report',
-          icon: 'mdi:report-line',
-        },
-        {
-          path: '/livereport',
-          action: 'read',
-          subject: 'livereport-p',
-          title: 'Live Report',
-          icon: 'mdi:file-report-outline',
-        },
+        // {
+        //   title: 'ReportLog',
+        //   action: 'read',
+        //   subject: 'reportLog-p',
+        //   path: '/reportlog',
+        //   icon: 'material-symbols:history',
+        // },
+        // {
+        //   path: '/report',
+        //   action: 'read',
+        //   subject: 'report-p',
+        //   title: 'Report',
+        //   icon: 'mdi:report-line',
+        // },
+        // {
+        //   path: '/livereport',
+        //   action: 'read',
+        //   subject: 'livereport-p',
+        //   title: 'Live Report',
+        //   icon: 'mdi:file-report-outline',
+        // },
         {
           path: '/reportTable',
           action: 'read',
@@ -129,13 +129,13 @@ const navigation = () => {
         },
       ]
     },
-    {
-      path: '/country',
-      action: 'read',
-      subject: 'country',
-      title: 'CountryTable',
-      icon: 'fluent-mdl2:world',
-    },
+    // {
+    //   path: '/country',
+    //   action: 'read',
+    //   subject: 'country',
+    //   title: 'CountryTable',
+    //   icon: 'fluent-mdl2:world',
+    // },
 
     {
       path: '/profile',

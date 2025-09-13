@@ -605,7 +605,6 @@ export default function AdvancedMUIStyleFilter({
       const dimensionName = selectionKey // Now selectionKey is just the dimension name
       if (dimensionName === 'Country') {
         const allCountriesSelected = filteredValues.every(country => newSelections.includes(country))
-        updateCountrySelection(newSelections)
         if (allCountriesSelected && filteredValues.length > 0) {
           updateCountrySelection(["ALL"])
         } else {

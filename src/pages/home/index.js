@@ -19,7 +19,7 @@ import { useQuery } from '@apollo/client'
 import { useEffect, useState } from 'react'
 import Icon from 'src/@core/components/icon'
 import { format, subDays } from 'date-fns'
-import { GET_ALOT_SITE_BOOLEAN, GET_NOT_ALLOT_SITE } from 'src/graphql/query/site'
+import { GET_ALL_SITES, GET_ALOT_SITE_BOOLEAN, GET_NOT_ALLOT_SITE } from 'src/graphql/query/site'
 import { GET_ALL_REPORTTABLES } from 'src/graphql/query/reportTable'
 
 import Link from 'next/link'
@@ -39,6 +39,7 @@ const Home = () => {
   const [dataa, setDataa] = useState([])
   const [startDate, setStartDate] = useState(subDays(new Date(), 30))
   const [endDate, setEndDate] = useState(new Date())
+  const [siteList, setSiteList] = useState([]);
 
   const auth = useAuth()
 
@@ -56,7 +57,7 @@ const Home = () => {
     variables: {
       page: 1,
       limit: 30,
-      site: ["quiz2.vuzeindia.in"],
+      site: siteList,
       byDated: true,
       startDate: startDate ? format(startDate, 'yyyy-MM-dd') : null,
       endDate: endDate ? format(endDate, 'yyyy-MM-dd') : null
@@ -65,7 +66,26 @@ const Home = () => {
     notifyOnNetworkStatusChange: true
   })
 
-  console.log("dataa ========", dataa);
+  // Graphql query for sites with debounced search
+  const {
+    loading: siteLoading,
+    error: siteError,
+    data: siteDatas,
+    refetch: siteRefetch
+  } = useQuery(GET_ALL_SITES, {
+    variables: {
+      page: 1,
+      limit: 100,
+      search: ""
+    },
+    fetchPolicy: 'cache-and-network'
+  });
+
+  useEffect(() => {
+    if (siteDatas?.getAllSites?.data) {
+      setSiteList(siteDatas.getAllSites.data.map(site => site.site))
+    }
+  }, [siteDatas])
 
   // Graphql query
   const { loading: userDashboardLoading, error: userDashboardError, data: userDashboardData, refetch: userDashboardRefetch } = useQuery(GET_USERDASHBOARD, {
