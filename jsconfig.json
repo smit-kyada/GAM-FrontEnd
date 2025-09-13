@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "baseUrl": "."
+    },
+    "include": [
+        "src",
+        "tryForgotPasword.js",
+        "tryForgotPasword.js"
+    ]
+}
