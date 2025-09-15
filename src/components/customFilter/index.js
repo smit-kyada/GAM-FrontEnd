@@ -491,7 +491,7 @@ export default function AdvancedMUIStyleFilter({
         return ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate', 'Bid Rate', 'Win Rate', 'Fill Rate']
 
       case 'Matrix':
-        return ['Date-True', 'Date-False', 'Country-True', 'Country-False'];
+        return ['Date-True', 'Date-False', 'Country-True', 'Country-False', 'adUnits-True', 'adUnits-False', 'hours-True', 'hours-False'];
 
       default:
         return []
@@ -959,6 +959,64 @@ export default function AdvancedMUIStyleFilter({
                                   }
 
                                   label={<Typography variant='body2'>Country</Typography>}
+                                  sx={{ marginBottom: '8px' }}
+                                />
+                              </FormGroup>
+                            </FormControl>
+                          </div>
+                          {/* Column 3 */}
+                          <div
+                            style={{
+                              backgroundColor: 'white',
+                              padding: '12px 16px'
+                            }}
+                          >
+                            <FormControl component='fieldset' sx={{ width: '100%' }}>
+                              <FormGroup>
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      checked={selectedValues.includes('adUnits')}
+                                      onChange={() => handleValueToggle('adUnits')}
+                                      sx={{
+                                        '& .MuiSvgIcon-root': {
+                                          width: '16px',
+                                          height: '16px'
+                                        }
+                                      }}
+                                    />
+                                  }
+
+                                  label={<Typography variant='body2'>Ad Units</Typography>}
+                                  sx={{ marginBottom: '8px' }}
+                                />
+                              </FormGroup>
+                            </FormControl>
+                          </div>
+                          {/* Column 4 */}
+                          <div
+                            style={{
+                              backgroundColor: 'white',
+                              padding: '12px 16px'
+                            }}
+                          >
+                            <FormControl component='fieldset' sx={{ width: '100%' }}>
+                              <FormGroup>
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      checked={selectedValues.includes('hours')}
+                                      onChange={() => handleValueToggle('hours')}
+                                      sx={{
+                                        '& .MuiSvgIcon-root': {
+                                          width: '16px',
+                                          height: '16px'
+                                        }
+                                      }}
+                                    />
+                                  }
+
+                                  label={<Typography variant='body2'>Hours</Typography>}
                                   sx={{ marginBottom: '8px' }}
                                 />
                               </FormGroup>
