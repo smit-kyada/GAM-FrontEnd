@@ -11,7 +11,7 @@ import format from 'date-fns/format'
 import DatePicker from 'react-datepicker'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
 import RowOptions from 'src/components/commonComponent/RowOptions'
-import { GET_ALL_REPORTTABLES } from 'src/graphql/query/reportTable'
+import { GET_ADUNIT_REPORTTABLES, GET_ALL_REPORTTABLES, GET_HOURS_REPORTTABLES } from 'src/graphql/query/reportTable'
 import { GET_ALL_SITES } from 'src/graphql/query/site'
 import { useAuth } from 'src/hooks/useAuth'
 import AddSiteTable from 'src/views/siteTable/list/AddSiteTable'
@@ -48,7 +48,7 @@ function CustomFooter({ totals, filteredData }) {
             width: '100%'
           }}
         >
-          <Box sx={{ minWidth: 300, p: 1 }}>
+          <Box sx={{ minWidth: 300 }}>
             <Typography
               noWrap
               sx={{ color: 'text.secondary', fontWeight: 'bold', fontSize: '16px', paddingLeft: '20px' }}
@@ -59,44 +59,49 @@ function CustomFooter({ totals, filteredData }) {
 
           {/* Country column (if enabled) */}
 
-          {filteredData?.selectedCountries?.length > 0 && (
-            <Box sx={{ minWidth: 220, p: 1 }}>
+          {filteredData?.selectedCountries?.length > 0 && filteredData?.byCountry && (
+            <Box sx={{ minWidth: 200, px: 4 }}>
+              <Typography noWrap>—</Typography>
+            </Box>
+          )}
+          {filteredData?.byHours && (
+            <Box sx={{ minWidth: 200, px: 4 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byDated && (
-            <Box sx={{ minWidth: 220, p: 1 }}>
+            <Box sx={{ minWidth: 180, px: 4 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
 
           {/* Impressions */}
-          <Box sx={{ minWidth: 130, p: 1, textAlign: 'right' }}>
+          <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
             <Typography noWrap>{totals?.impressions}</Typography>
           </Box>
 
           {/* CTR */}
-          <Box sx={{ minWidth: 130, p: 1, textAlign: 'right' }}>
+          <Box sx={{ minWidth: 130, textAlign: 'right', px: 4 }}>
             <Typography noWrap>{(totals?.ctr ?? 0).toFixed(2)}%</Typography>
           </Box>
 
           {/* ECPM */}
-          <Box sx={{ minWidth: 150, p: 1, textAlign: 'right' }}>
+          <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
             <Typography noWrap>US${(totals?.ecpm ? totals?.ecpm : 0).toFixed(2)}</Typography>
           </Box>
 
           {/* Revenue */}
-          <Box sx={{ minWidth: 220, p: 1, textAlign: 'right' }}>
+          <Box sx={{ minWidth: 220, textAlign: 'right', px: 4 }}>
             <Typography noWrap>US${(totals?.revenue ?? 0).toFixed(2)}</Typography>
           </Box>
 
           {/* Clicks */}
-          <Box sx={{ minWidth: 100, p: 1, textAlign: 'right' }}>
+          <Box sx={{ minWidth: 100, textAlign: 'right', px: 4 }}>
             <Typography noWrap>{totals?.clicks ?? 0}</Typography>
           </Box>
 
           {/* Match Rate */}
-          <Box sx={{ minWidth: 100, p: 1, textAlign: 'right' }}>
+          <Box sx={{ minWidth: 100, textAlign: 'right', px: 4 }}>
             <Typography noWrap>{(totals?.matchRate ?? 0).toFixed(2)}%</Typography>
           </Box>
         </Box>
@@ -127,6 +132,8 @@ const SiteTable = () => {
   const [selectedCountries, setSelectedCountries] = useState([])
   const [byDated, setByDated] = useState(false)
   const [byCountry, setByCountry] = useState(false)
+  const [byAdUnit, setByAdUnit] = useState(false)
+  const [byHours, setByHours] = useState(false)
 
   const [appliedFiltersText, setAppliedFiltersText] = useState([]);
 
@@ -141,7 +148,10 @@ const SiteTable = () => {
     pageNumber: 1,
     pageSize: 10,
     byDated: false,
-    byCountry: false
+    byCountry: false,
+    byDate: false,
+    byAdUnit: false,
+    byHours: false,
   })
 
   // ** Hook
@@ -149,7 +159,7 @@ const SiteTable = () => {
   const { direction } = theme
   const popperPlacement = direction === 'ltr' ? 'bottom-start' : 'bottom-end'
 
-  // Graphql query for report tables - now uses appliedFilters.selectedCountries
+  // Graphql query for report tables - conditionally calls based on byHours and byAdUnit flags
   const {
     loading: siteTableLoading,
     error: siteTableError,
@@ -167,7 +177,47 @@ const SiteTable = () => {
       endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
     },
     fetchPolicy: 'cache-and-network',
-    notifyOnNetworkStatusChange: true
+    notifyOnNetworkStatusChange: true,
+    skip: appliedFilters.byAdUnit || appliedFilters.byHours // Skip when byAdUnit OR byHours is true
+  })
+
+  const {
+    loading: adunitTableLoading,
+    error: adunitTableError,
+    data: adunitTableData,
+    refetch: adunitReportTableRefetch
+  } = useQuery(GET_ADUNIT_REPORTTABLES, {
+    variables: {
+      page: appliedFilters.pageNumber,
+      limit: appliedFilters.pageSize,
+      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
+      byDated: appliedFilters.byDated,
+      country:
+        appliedFilters.selectedCountries.length && appliedFilters.byCountry ? appliedFilters.selectedCountries : null,
+      startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
+      endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
+    },
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
+    skip: !appliedFilters.byAdUnit || appliedFilters.byHours // Skip when byAdUnit is false OR byHours is true
+  })
+
+  const {
+    loading: hoursTableLoading,
+    error: hoursTableError,
+    data: hoursTableData,
+    refetch: hoursReportTableRefetch
+  } = useQuery(GET_HOURS_REPORTTABLES, {
+    variables: {
+      page: appliedFilters.pageNumber,
+      limit: appliedFilters.pageSize,
+      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
+      startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
+      endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
+    },
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
+    skip: !appliedFilters.byHours // Skip when byHours is false
   })
 
   // Graphql query for sites with debounced search
@@ -185,24 +235,60 @@ const SiteTable = () => {
     fetchPolicy: 'cache-and-network'
   })
 
-  siteTableRes = reportTableRefetch
+  // Set the appropriate refetch function based on byHours and byAdUnit flags
+  siteTableRes = appliedFilters.byHours
+    ? hoursReportTableRefetch
+    : appliedFilters.byAdUnit
+      ? adunitReportTableRefetch
+      : reportTableRefetch
 
   useEffect(() => {
-    if (siteTableData?.getReports) {
-      const { docs, totalDocs, totals } = siteTableData.getReports
+    if (appliedFilters.pageNumber) {
+      if (siteTableData?.getReports) {
+        const { docs, totalDocs, totals } = siteTableData.getReports
 
-      setData(docs)
-      setTotalRow(totalDocs)
-      setTotals(totals)
+        setData(docs)
+        setTotalRow(totalDocs)
+        setTotals(totals)
+      }
     }
-  }, [siteTableData])
+  }, [siteTableData, appliedFilters.pageNumber])
+
+  useEffect(() => {
+    if (appliedFilters.pageNumber) {
+      if (adunitTableData?.getAdUnitReports) {
+        const { docs, totalDocs, totals } = adunitTableData.getAdUnitReports;
+
+        setData(docs)
+        setTotalRow(totalDocs)
+        setTotals(totals)
+      }
+    }
+  }, [adunitTableData, appliedFilters.pageNumber])
+
+  useEffect(() => {
+    if (appliedFilters.pageNumber) {
+      if (hoursTableData?.getHoursWiseReports) {
+        const { docs, totalDocs, totals } = hoursTableData.getHoursWiseReports;
+
+        setData(docs)
+        setTotalRow(totalDocs)
+        setTotals(totals)
+      }
+    }
+  }, [hoursTableData, appliedFilters.pageNumber])
 
   // Update site list when siteDatas changes
   useEffect(() => {
     if (siteDatas?.getAllSites?.data) {
-      setSiteList(siteDatas.getAllSites.data.map(site => site.site))
+      setSiteList(
+        [...new Set(siteDatas.getAllSites.data.map(item => item.site?.trim() ?? ""))]
+      );     
     }
   }, [siteDatas])
+
+
+  console.log(siteList, "siteList")
 
   // Debounce site search to avoid too many API calls
   useEffect(() => {
@@ -229,7 +315,7 @@ const SiteTable = () => {
     setSiteSearchText(newInputValue)
   }
 
-  // Handle filter application - now includes selectedCountries and selectedSites
+  // Handle filter application - now includes selectedCountries, selectedSites, byAdUnit, and byHours
   const handleFilter = useCallback(() => {
     const newFilters = {
       startDate: startDate,
@@ -237,6 +323,8 @@ const SiteTable = () => {
       selectedSites: selectedSites,
       byDated: byDated,
       byCountry: byCountry,
+      byAdUnit: byAdUnit,
+      byHours: byHours,
       selectedCountries: selectedCountries, // Include selected countries in applied filters
       pageNumber: 1,
       pageSize: pageSize
@@ -250,7 +338,7 @@ const SiteTable = () => {
 
     setPageNumber(1)
     setAppliedFilters(newFilters)
-  }, [startDate, endDate, selectedSites, selectedCountries, pageSize, byDated, byCountry]) // Add selectedSites to dependency array
+  }, [startDate, endDate, selectedSites, selectedCountries, pageSize, byDated, byCountry, byAdUnit, byHours]) // Add byHours to dependency array
 
   // Handle pagination changes
   const handlePageChange = useCallback(newPage => {
@@ -280,7 +368,7 @@ const SiteTable = () => {
     setEndDate(end)
   }
 
-  // Handle reset filter - now resets countries and sites too
+  // Handle reset filter - now resets countries, sites, byAdUnit, and byHours too
   const handleResetFilter = useCallback(() => {
     const resetFilters = {
       startDate: today,
@@ -288,6 +376,8 @@ const SiteTable = () => {
       selectedSites: [],
       byDated: false,
       byCountry: false,
+      byAdUnit: false,
+      byHours: false,
       selectedCountries: [],
       pageNumber: 1,
       pageSize: 10
@@ -299,6 +389,8 @@ const SiteTable = () => {
     setSelectedSites([])
     setByDated(false)
     setByCountry(false)
+    setByAdUnit(false)
+    setByHours(false)
     setSelectedCountries([])
     setPageNumber(1)
     setPageSize(10)
@@ -308,6 +400,7 @@ const SiteTable = () => {
   }, [today])
 
   const hasCountryData = data.some(row => row.country)
+  const hasHoursData = data.some(row => row.hour)
 
   // Define columns
   let SiteTableColumn = [
@@ -337,10 +430,24 @@ const SiteTable = () => {
           }
         ]
       : []),
+    ...(hasHoursData
+      ? [
+        {
+          minWidth: 200,
+          field: 'hour',
+          headerName: 'Hour',
+          renderCell: ({ row }) => (
+            <Typography noWrap sx={{ color: 'text.secondary' }}>
+              {row?.hour || '--'}
+            </Typography>
+          )
+        }
+      ]
+      : []),
     ...(appliedFilters.byDated
       ? [
           {
-            minWidth: 220,
+          minWidth: 180,
             field: 'date',
             headerName: 'Date',
             renderCell: ({ row }) => (
@@ -360,7 +467,7 @@ const SiteTable = () => {
         ]
       : []),
     {
-      minWidth: 130,
+      minWidth: 150,
       field: 'impressions',
       headerName: 'Impressions',
       align: 'right',
@@ -421,7 +528,7 @@ const SiteTable = () => {
       align: 'right',
       renderCell: ({ row }) => (
         <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
-          {(row?.matchRate).toFixed(2)}
+          {(row?.matchRate).toFixed(2)}%
         </Typography>
       )
     }
@@ -690,7 +797,7 @@ const SiteTable = () => {
               autoHeight
               paginationMode='server'
               onPageChange={handlePageChange}
-              loading={siteTableLoading}
+              loading={appliedFilters.byHours ? hoursTableLoading : appliedFilters.byAdUnit ? adunitTableLoading : siteTableLoading}
               rowHeight={62}
               rows={data}
               columns={SiteTableColumn}
@@ -715,12 +822,14 @@ const SiteTable = () => {
             setEndDate={setEndDate}
             setAppliedFiltersText={setAppliedFiltersText}
             handleFilter={handleFilter}
-            siteTableLoading={siteTableLoading}
+            siteTableLoading={appliedFilters.byHours ? hoursTableLoading : appliedFilters.byAdUnit ? adunitTableLoading : siteTableLoading}
             handleResetFilter={handleResetFilter}
             open={open}
             setOpen={setOpen}
             setByDated={setByDated}
             setByCountry={setByCountry}
+            setByAdUnit={setByAdUnit}
+            setByHours={setByHours}
           />
           {addUserOpen && (
             <AddSiteTable

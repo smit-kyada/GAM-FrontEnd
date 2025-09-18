@@ -59,7 +59,7 @@ const RechartsLineChart = ({ direction, data }) => {
                   <Icon icon='tabler:arrow-up' fontSize='1rem' />
                   <span>
                     {/* 22% */}
-                    $ {totalEarning?.toFixed(2)}
+                    $ {totalEarning}
                   </span>
                 </Box>
               }
@@ -73,7 +73,15 @@ const RechartsLineChart = ({ direction, data }) => {
             <LineChart height={350} data={data} style={{ direction }} >
 
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey='date' reversed={direction === 'rtl'} />
+              <XAxis
+                dataKey='date'
+                reversed={direction === 'rtl'}
+                interval={0}
+                tick={{ fontSize: 12 }}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
               <YAxis orientation={direction === 'rtl' ? 'right' : 'left'} />
               {/* <Tooltip content={CustomTooltip} /> */}
               <Tooltip />

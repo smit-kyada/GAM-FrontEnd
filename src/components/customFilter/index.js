@@ -363,7 +363,9 @@ export default function AdvancedMUIStyleFilter({
   open,
   setOpen,
   setByDated,
-  setByCountry
+  setByCountry,
+  setByAdUnit,
+  setByHours
 }) {
   // const [open, setOpen] = useState(false);
   const [selectedDimension, setSelectedDimension] = useState('matrix')
@@ -416,6 +418,10 @@ export default function AdvancedMUIStyleFilter({
     setByDated(hasDate);
     const hasCountry = matrix.includes("Country");
     setByCountry(hasCountry);
+    const hasAdUnit = matrix.includes("adUnits");
+    setByAdUnit(hasAdUnit);
+    const hasHours = matrix.includes("hours");
+    setByHours(hasHours);
 };
 
   // Updated function to get values based on dimension and sub-dimension
@@ -554,7 +560,28 @@ export default function AdvancedMUIStyleFilter({
       if (currentSelections.includes(value)) {
         newSelections = currentSelections.filter(v => v !== value)
       } else {
-        newSelections = [...currentSelections, value]
+        // For Matrix dimension, implement mutual exclusion logic
+        if (selectionKey === 'Matrix') {
+          // Define mutually exclusive groups
+          const mutuallyExclusiveGroups = {
+            'hours': ['Country', 'adUnits'],
+            'Country': ['hours'],
+            'adUnits': ['hours']
+          }
+
+          // If the value being selected is in a mutually exclusive group
+          if (mutuallyExclusiveGroups[value]) {
+            // Remove all values from the mutually exclusive group
+            newSelections = currentSelections.filter(v => !mutuallyExclusiveGroups[value].includes(v))
+            // Add the new value
+            newSelections.push(value)
+          } else {
+            // For Date, just add it normally (no mutual exclusion)
+            newSelections = [...currentSelections, value]
+          }
+        } else {
+          newSelections = [...currentSelections, value]
+        }
       }
 
       // Update parent components based on dimension name directly

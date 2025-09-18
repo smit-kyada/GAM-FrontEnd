@@ -68,7 +68,7 @@ const AppBarContent = props => {
               fontSize: '1.375rem !important'
             }}
           >
-            {themeConfig.templateName}
+              {themeConfig.templateName} sds
           </Typography>
         </LinkStyled>
       )}

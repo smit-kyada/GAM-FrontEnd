@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react'
 import Icon from 'src/@core/components/icon'
 import { format, subDays } from 'date-fns'
 import { GET_ALL_SITES, GET_ALOT_SITE_BOOLEAN, GET_NOT_ALLOT_SITE } from 'src/graphql/query/site'
-import { GET_ALL_REPORTTABLES } from 'src/graphql/query/reportTable'
+import { GET_ALL_REPORTTABLES, GET_ALL_REPORTTABLES_BY_DATE } from 'src/graphql/query/reportTable'
 
 import Link from 'next/link'
 import PieChart from 'src/components/pieChart/RechartsLineChart'
@@ -48,23 +48,41 @@ const Home = () => {
     fetchPolicy: "cache-and-network",
   });
 
+  console.log(siteList, "siteList")
+
+  // const {
+  //   loading: siteTableLoading,
+  //   error: siteTableError,
+  //   data: siteTableData,
+  //   refetch: reportTableRefetch
+  // } = useQuery(GET_ALL_REPORTTABLES, {
+  //   variables: {
+  //     page: 1,
+  //     limit: 30,
+  //     site: siteList,
+  //     byDated: true,
+  //     startDate: startDate ? format(startDate, 'yyyy-MM-dd') : null,
+  //     endDate: endDate ? format(endDate, 'yyyy-MM-dd') : null
+  //   },
+  //   fetchPolicy: 'cache-and-network',
+  //   notifyOnNetworkStatusChange: true
+  // })
+
   const {
     loading: siteTableLoading,
     error: siteTableError,
     data: siteTableData,
     refetch: reportTableRefetch
-  } = useQuery(GET_ALL_REPORTTABLES, {
+  } = useQuery(GET_ALL_REPORTTABLES_BY_DATE, {
     variables: {
-      page: 1,
-      limit: 30,
-      site: siteList,
-      byDated: true,
-      startDate: startDate ? format(startDate, 'yyyy-MM-dd') : null,
-      endDate: endDate ? format(endDate, 'yyyy-MM-dd') : null
+      sites: siteList,
+      days: 30
     },
     fetchPolicy: 'cache-and-network',
-    notifyOnNetworkStatusChange: true
+    notifyOnNetworkStatusChange: true,
+    skip: siteList.length === 0
   })
+
 
   // Graphql query for sites with debounced search
   const {
@@ -83,7 +101,9 @@ const Home = () => {
 
   useEffect(() => {
     if (siteDatas?.getAllSites?.data) {
-      setSiteList(siteDatas.getAllSites.data.map(site => site.site))
+      setSiteList(
+        [...new Set(siteDatas.getAllSites.data.map(item => item.site?.trim() ?? ""))]
+      );    
     }
   }, [siteDatas])
 
@@ -105,8 +125,8 @@ const Home = () => {
     messageData?.getAllMessages?.data && setAllMessage(messageData?.getAllMessages?.data)
 
     // userDashboardData?.getDashBoardData && setDataa(JSON.parse(userDashboardData?.getDashBoardData))
-    siteTableData?.getReports?.docs && setDataa(siteTableData?.getReports?.docs?.map(item => {
-      return { totalEstimatedEarning: item.revenue, date: item.date }
+    siteTableData?.getTotalRevenueData?.dailyData && setDataa(siteTableData?.getTotalRevenueData?.dailyData?.map(item => {
+      return { totalEstimatedEarning: item.totalRevenue, date: item.date }
     }))
   }, [messageData, siteTableData])
 

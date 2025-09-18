@@ -122,11 +122,11 @@ const VerticalNavHeader = props => {
             />
           </svg> */}
 
-          <img src="/images/apple-touch-icon.png" width={52} height={42} alt="logo" />
-
-          <HeaderTitle variant='h6' sx={{ ...menuCollapsedStyles, ...(navCollapsed && !navHover ? {} : { ml: 2.5 }) }}>
-            {themeConfig.templateName}
-          </HeaderTitle>
+            {/* <img src="/images/apple-touch-icon.png" width={52} height={42} alt="logo" /> */}
+            <img src="/images/vasuki-logo.svg" width={152} height={42} alt="logo" />
+            {/* <HeaderTitle variant='h6' sx={{ ...menuCollapsedStyles, ...(navCollapsed && !navHover ? {} : { ml: 2.5 }) }}>
+              {themeConfig.templateName} ccx
+          </HeaderTitle> */}
         </LinkStyled>
       )}
 
