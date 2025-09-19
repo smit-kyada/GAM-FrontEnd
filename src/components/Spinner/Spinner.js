@@ -47,7 +47,7 @@ const Spinner = ({ sx }) => {
         />
       </svg> */}
 
-      <img src="/images/apple-touch-icon.png" width={120} height={85.375} alt="logo" />
+      <img src="/images/vasuki-fav.svg" width={120} height={85.375} alt="logo" />
       <CircularProgress disableShrink sx={{ mt: 6 }} />
     </Box>
   )

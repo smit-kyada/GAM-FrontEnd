@@ -1,15 +1,12 @@
 import { useQuery } from '@apollo/client'
-import { Autocomplete, Box, Button, TextField, Typography, Checkbox, FormControlLabel, IconButton } from '@mui/material'
+import { Box, Button, Typography, Select, MenuItem, FormControl } from '@mui/material'
 import Card from '@mui/material/Card'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
 import { DataGrid, GridFooterContainer, GridPagination } from '@mui/x-data-grid'
-import { forwardRef, useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Moment from 'react-moment'
-import CardStatsHorizontalWithDetails from 'src/@core/components/card-statistics/card-stats-horizontal-with-details'
 import format from 'date-fns/format'
-import DatePicker from 'react-datepicker'
-import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
 import RowOptions from 'src/components/commonComponent/RowOptions'
 import { GET_ADUNIT_REPORTTABLES, GET_ALL_REPORTTABLES, GET_HOURS_REPORTTABLES } from 'src/graphql/query/reportTable'
 import { GET_ALL_SITES } from 'src/graphql/query/site'
@@ -21,37 +18,30 @@ import { Icon } from '@iconify/react'
 import AdvancedMUIStyleFilter from 'src/components/customFilter'
 import toast from 'react-hot-toast'
 
-
-const CustomInput = forwardRef((props, ref) => {
-  const startDate = props?.start ? `${format(props?.start, 'MM/dd/yyyy')}` : null
-  const endDate = props?.end ? ` - ${format(props?.end, 'MM/dd/yyyy')}` : null
-  const value = `${startDate ? startDate : ''}${endDate ? endDate : ''}`
-
-  return <TextField inputRef={ref} label={props.label || ''} {...props} value={value} />
-})
-
 var siteTableRes
 
-function CustomFooter({ totals, filteredData }) {
+function CustomFooter({ totals, filteredData, selectedAdExchange }) {
   return (
     <>
       <GridFooterContainer
         sx={{
-          backgroundColor: '#f5f5f5',
           fontWeight: 'bold',
-          borderTop: '1px solid #e0e0e0'
+          overflow: 'hidden',
+          width: '100%',
+          minWidth: 'max-content' // Ensure footer content doesn't shrink
         }}
       >
         <Box
           sx={{
             display: 'flex',
-            width: '100%'
+            width: '100%',
+            minWidth: 'max-content' // Match the table content width
           }}
         >
-          <Box sx={{ minWidth: 250 }}>
+          <Box sx={{ minWidth: 250, flexShrink: 0 }}>
             <Typography
               noWrap
-              sx={{ color: 'text.secondary', fontWeight: 'bold', fontSize: '16px', paddingLeft: '20px' }}
+              sx={{ color: 'text.secondary', fontSize: '16px', paddingLeft: '20px' }}
             >
               TOTAL
             </Typography>
@@ -60,58 +50,93 @@ function CustomFooter({ totals, filteredData }) {
           {/* Country column (if enabled) */}
 
           {filteredData?.selectedCountries?.length > 0 && filteredData?.byCountry && (
-            <Box sx={{ minWidth: 200, px: 4 }}>
+            <Box sx={{ minWidth: 180, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byHours && (
-            <Box sx={{ minWidth: 200, px: 4 }}>
+            <Box sx={{ minWidth: 200, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byAdUnit && (
-            <Box sx={{ minWidth: 300, px: 4 }}>
+            <Box sx={{ minWidth: 300, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byDated && (
-            <Box sx={{ minWidth: 200, px: 4 }}>
+            <Box sx={{ minWidth: 120, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
 
-          {/* Impressions */}
-          <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>{totals?.impressions ?? 0}</Typography>
-          </Box>
+          {/* Render filtered Ad-Exchange columns */}
+          {(() => {
+            const allAdExchangeFooterColumns = [
+              {
+                name: 'Impressions',
+                minWidth: 150,
+                value: totals?.impressions ?? 0,
+                format: (val) => val
+              },
+              {
+                name: 'CTR',
+                minWidth: 130,
+                value: totals?.ctr ?? 0,
+                format: (val) => `${val.toFixed(2)}%`
+              },
+              {
+                name: 'ECPM',
+                minWidth: 150,
+                value: totals?.ecpm ?? 0,
+                format: (val) => `US$${val.toFixed(2)}`
+              },
+              {
+                name: 'Revenue',
+                minWidth: 150,
+                value: totals?.revenue ?? 0,
+                format: (val) => `US$${val.toFixed(2)}`
+              },
+              {
+                name: 'Clicks',
+                minWidth: 100,
+                value: totals?.clicks ?? 0,
+                format: (val) => val
+              },
+              {
+                name: 'Match Rate',
+                minWidth: 100,
+                value: totals?.matchRate ?? 0,
+                format: (val) => `${val.toFixed(2)}%`
+              }
+            ]
 
-          {/* CTR */}
-          <Box sx={{ minWidth: 130, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>{(totals?.ctr ?? 0).toFixed(2)}%</Typography>
-          </Box>
+            const getAdExchangeFooterColumns = () => {
+              if (!selectedAdExchange || selectedAdExchange.length === 0) {
+                return allAdExchangeFooterColumns // Show all if none selected
+              }
 
-          {/* ECPM */}
-          <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>US${(totals?.ecpm ? totals?.ecpm : 0).toFixed(2)}</Typography>
-          </Box>
+              return allAdExchangeFooterColumns.filter(column => {
+                return selectedAdExchange.includes(column.name)
+              })
+            }
 
-          {/* Revenue */}
-          <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>US${(totals?.revenue ?? 0).toFixed(2)}</Typography>
-          </Box>
-
-          {/* Clicks */}
-          <Box sx={{ minWidth: 100, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>{totals?.clicks ?? 0}</Typography>
-          </Box>
-
-          {/* Match Rate */}
-          <Box sx={{ minWidth: 100, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>{(totals?.matchRate ?? 0).toFixed(2)}%</Typography>
+            return getAdExchangeFooterColumns().map((column, index) => (
+              <Box key={index} sx={{ minWidth: column.minWidth, textAlign: 'right', px: 4, flexShrink: 0 }}>
+                <Typography noWrap>{column.format(column.value)}</Typography>
+              </Box>
+            ))
+          })()}
+          <Box sx={{ minWidth: 100, px: 4, flexShrink: 0 }}>
+            <Typography noWrap>—</Typography>
           </Box>
         </Box>
       </GridFooterContainer>
-      <GridPagination />
+      {/* <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ width: '400px' }}>
+          <GridPagination />
+        </div>
+      </Box> */}
     </>
   )
 }
@@ -139,6 +164,14 @@ const SiteTable = () => {
   const [byCountry, setByCountry] = useState(false)
   const [byAdUnit, setByAdUnit] = useState(false)
   const [byHours, setByHours] = useState(false)
+  const [tempSelections, setTempSelections] = useState({
+    'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+  });
+
+  // Applied selections state - only updates when Apply button is clicked
+  const [appliedSelections, setAppliedSelections] = useState({
+    'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+  });
 
   const [appliedFiltersText, setAppliedFiltersText] = useState([]);
 
@@ -293,8 +326,6 @@ const SiteTable = () => {
   }, [siteDatas])
 
 
-  console.log(siteList, "siteList")
-
   // Debounce site search to avoid too many API calls
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -311,15 +342,6 @@ const SiteTable = () => {
   }, [siteSearchText, siteRefetch])
 
   const toggleAddUserDrawer = () => setAddUserOpen(!addUserOpen)
-
-  const handleSiteChange = (event, newValue) => {
-    setSelectedSites(newValue)
-  }
-
-  const handleSiteSearchInput = (event, newInputValue) => {
-    setSiteSearchText(newInputValue)
-  }
-
   // Handle filter application - now includes selectedCountries, selectedSites, byAdUnit, and byHours
   const handleFilter = useCallback(() => {
     const newFilters = {
@@ -400,93 +422,30 @@ const SiteTable = () => {
     setPageNumber(1)
     setPageSize(10)
 
+    // Reset tempSelections to default (all Ad-Exchange values selected)
+    setTempSelections({
+      'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+    })
+
+    // Reset appliedSelections to default (all Ad-Exchange values selected)
+    setAppliedSelections({
+      'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+    })
+
     // Apply reset filters
     setAppliedFilters(resetFilters)
   }, [today])
 
+  // console.log(appliedSelections, "appliedSelections") asdkfk
+
   const hasCountryData = data.some(row => row.country)
   const hasHoursData = data.some(row => row.hour)
 
-  // Define columns
-  let SiteTableColumn = [
-    {
-      minWidth: 250,
-      field: 'site',
-      headerName: 'Site',
-      renderCell: ({ row }) => (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <Typography noWrap sx={{ color: 'text.secondary' }}>
-            {row?.site}
-          </Typography>
-        </Box>
-      )
-    },
-    ...(hasCountryData
-      ? [
-          {
-            minWidth: 200,
-            field: 'country',
-            headerName: 'Country',
-            renderCell: ({ row }) => (
-              <Typography noWrap sx={{ color: 'text.secondary' }}>
-                {row?.country || '--'}
-              </Typography>
-            )
-          }
-        ]
-      : []),
-    ...(hasHoursData
-      ? [
-        {
-          minWidth: 200,
-          field: 'hour',
-          headerName: 'Hour',
-          renderCell: ({ row }) => (
-            <Typography noWrap sx={{ color: 'text.secondary' }}>
-              {row?.hour || '--'}
-            </Typography>
-          )
-        }
-      ]
-      : []),
-    ...(appliedFilters.byAdUnit
-      ? [
-        {
-          minWidth: 300,
-          field: 'adUnit',
-          headerName: 'Ad Unit',
-          renderCell: ({ row }) => (
-            <Typography noWrap sx={{ color: 'text.secondary' }}>
-              {row?.id
-                ? row.id.split('-').slice(4).join('-')
-                : '--'}
-            </Typography>
-          )
-        }
-      ]
-      : []),
-    ...(appliedFilters.byDated
-      ? [
-          {
-          minWidth: 200,
-            field: 'date',
-            headerName: 'Date',
-            renderCell: ({ row }) => (
-              <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
-                {row?.date ? (
-                  isNaN(Date.parse(row.date)) ? (
-                    row.date
-                  ) : (
-                    <Moment format='MMMM Do YYYY'>{row.date}</Moment>
-                  )
-                ) : (
-                  '--'
-                )}
-              </Typography>
-            )
-          }
-        ]
-      : []),
+  // Get selected Ad-Exchange values from tempSelections
+  const selectedAdExchange = appliedSelections?.['Ad-Exchange'] || []
+
+  // Define all possible Ad-Exchange columns
+  const allAdExchangeColumns = [
     {
       minWidth: 150,
       field: 'impressions',
@@ -555,6 +514,102 @@ const SiteTable = () => {
     }
   ]
 
+  // Filter Ad-Exchange columns based on selection
+  const getAdExchangeColumns = () => {
+    if (selectedAdExchange.length === 0) {
+      return allAdExchangeColumns // Show all if none selected
+    }
+
+    return allAdExchangeColumns.filter(column => {
+      const columnName = column.headerName
+      return selectedAdExchange.includes(columnName)
+    })
+  }
+
+  // Define columns
+  let SiteTableColumn = [
+    {
+      minWidth: 250,
+      field: 'site',
+      headerName: 'Site',
+      renderCell: ({ row }) => (
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Typography noWrap sx={{ color: 'text.secondary' }}>
+            {row?.site}
+          </Typography>
+        </Box>
+      )
+    },
+    ...(hasCountryData
+      ? [
+          {
+          minWidth: 180,
+            field: 'country',
+            headerName: 'Country',
+            renderCell: ({ row }) => (
+              <Typography noWrap sx={{ color: 'text.secondary' }}>
+                {row?.country || '--'}
+              </Typography>
+            )
+          }
+        ]
+      : []),
+    ...(hasHoursData
+      ? [
+        {
+          minWidth: 200,
+          field: 'hour',
+          headerName: 'Hour',
+          renderCell: ({ row }) => (
+            <Typography noWrap sx={{ color: 'text.secondary' }}>
+              {row?.hour || '--'}
+            </Typography>
+          )
+        }
+      ]
+      : []),
+    ...(appliedFilters.byAdUnit
+      ? [
+        {
+          minWidth: 300,
+          field: 'adUnit',
+          headerName: 'Ad Unit',
+          renderCell: ({ row }) => (
+            <Typography noWrap sx={{ color: 'text.secondary' }}>
+              {row?.id
+                ? row.id.split('-').slice(4).join('-')
+                : '--'}
+            </Typography>
+          )
+        }
+      ]
+      : []),
+    ...(appliedFilters.byDated
+      ? [
+          {
+          minWidth: 120,
+            field: 'date',
+            headerName: 'Date',
+            renderCell: ({ row }) => (
+              <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+                {row?.date ? (
+                  isNaN(Date.parse(row.date)) ? (
+                    row.date
+                  ) : (
+                      <Moment format='MM/DD/yyyy'>{row.date}</Moment>
+                  )
+                ) : (
+                  '--'
+                )}
+              </Typography>
+            )
+          }
+        ]
+      : []),
+    // Add filtered Ad-Exchange columns
+    ...getAdExchangeColumns()
+  ]
+
   // Add actions column for admin users
   if (user?.role === 'admin') {
     SiteTableColumn.push({
@@ -571,48 +626,6 @@ const SiteTable = () => {
       )
     })
   }
-
-  const updateSiteSelection = sites => {
-    if (sites) {
-      setSelectedSites(sites)
-    }
-  }
-
-  const updateCountrySelection = countries => {
-    if (countries) {
-      setSelectedCountries(countries)
-    }
-  }
-
-  const matrixValues = matrix => {
-    const hasDate = matrix.includes('Date')
-    setByDated(hasDate)
-    const hasCountry = matrix.includes('Country')
-    setByCountry(hasCountry)
-  }
-
-  const handleRemoveFilter = filterId => {
-    setAppliedFiltersText(prev => {
-      const updatedFilters = prev.filter(filter => filter.id !== filterId)
-
-      // Check if we're removing a specific filter type
-      const removedFilter = prev.find(filter => filter.id === filterId)
-      if (removedFilter) {
-        if (removedFilter.dimension === 'Country') {
-          updateCountrySelection([])
-        }
-        if (removedFilter.dimension === 'Site') {
-          updateSiteSelection([])
-        }
-        if (removedFilter.dimension === 'Matrix') {
-          matrixValues([])
-        }
-      }
-
-      return updatedFilters
-    })
-  }
-
   return (
     <>
       <Grid container spacing={6.5}>
@@ -633,30 +646,6 @@ const SiteTable = () => {
             <Divider sx={{ m: '0 !important' }} />
 
             <Grid container spacing={3} alignItems='center' xs={12}>
-              {/* Date Picker */}
-              {/* <Grid item xs={4} display="flex" gap={3} alignItems="center" >
-                <DatePickerWrapper fullWidth>
-                  <DatePicker
-                    selectsRange
-                    endDate={endDate}
-                    selected={startDate}
-                    startDate={startDate}
-                    id="date-range-picker"
-                    onChange={handleOnChange}
-                    shouldCloseOnSelect={false}
-                    popperPlacement={popperPlacement}
-                    customInput={<CustomInput label="Date Range" start={startDate} end={endDate} />}
-                  />
-                </DatePickerWrapper>
-                <FormControlLabel
-                  control={<Checkbox checked={byDated} onChange={(e) => setByDated(e.target.checked)} />}
-                  label="By Date"
-                />
-                <FormControlLabel
-                  control={<Checkbox checked={byCountry} onChange={(e) => setByCountry(e.target.checked)} />}
-                  label="By Country"
-                />
-              </Grid> */}
               <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
                 <Grid item>
                   <Button
@@ -678,12 +667,13 @@ const SiteTable = () => {
                           position: 'relative',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          backgroundColor: '#e3f2fd',
-                          border: '1px solid #1976d2',
+                          backgroundColor: 'secondary.paper',
+                          border: '1px solid',
+                          borderColor: 'secondary.main',
                           borderRadius: '16px',
-                          padding: '6px 32px 6px 12px', // Extra padding on right for close button
+                          padding: '6px 12px 6px 12px', 
                           fontSize: '13px',
-                          color: '#1976d2',
+                          color: 'secondary.light',
                           maxWidth: '400px'
                         }}
                       >
@@ -694,144 +684,203 @@ const SiteTable = () => {
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             fontSize: '13px',
-                            color: '#1976d2'
                           }}
                         >
                           {filter.label}
                         </Typography>
-                        <IconButton
-                          onClick={() => handleRemoveFilter(filter.id)}
-                          size='small'
-                          sx={{
-                            position: 'absolute',
-                            right: '4px',
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            color: '#1976d2',
-                            padding: '2px',
-                            '&:hover': {
-                              backgroundColor: 'rgba(25, 118, 210, 0.1)'
-                            }
-                          }}
-                        >
-                          <Icon icon='tabler:x' fontSize={16} />
-                        </IconButton>
                       </Box>
                     ))}
                   </Box>
                 </Grid>
               </Grid>
-
-              {/* Site Multi Select */}
-              {/* <Grid item xs={3}>
-                <Autocomplete
-                  multiple
-                  fullWidth
-                  value={selectedSites}
-                  options={siteList || []}
-                  onChange={handleSiteChange}
-                  onInputChange={handleSiteSearchInput}
-                  id="site-autocomplete"
-                  loading={siteLoading}
-                  renderOption={(props, option) =>
-                      <li {...props} key={option.id || option}>
-                        {option}
-                      </li>
-                  }
-                  getOptionLabel={option => option || ""}
-                  renderInput={params => (
-                    <TextField
-                      {...params}
-                      label="Select Sites"
-                      placeholder="Choose sites..."
-                      InputProps={{
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {siteLoading ? (
-                              <Typography variant="caption">Loading...</Typography>
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      }}
-                    />
-                  )}
-                />
-              </Grid> */}
-
-              {/* Countries Multi Select */}
-              {/* <Grid item xs={3}>
-                <Autocomplete
-                  multiple
-                  fullWidth
-                  disabled={!byCountry}
-                  value={selectedCountries}
-                  options={["ALL", "Azerbaijan", "Argentina", "Brazil", "India", "USA"]}
-                  onChange={(event, newValue) => {
-                    if (newValue.includes("ALL")) {
-                      setSelectedCountries(["ALL"]);
-                    } else {
-                      setSelectedCountries(newValue.filter(v => v !== "ALL"));
-                    }
-                  }}
-                  renderOption={(props, option) => (
-                    <li {...props} key={option}>
-                      {option}
-                    </li>
-                  )}
-                  renderInput={params => (
-                    <TextField
-                      {...params}
-                      label="Select Countries"
-                      placeholder="Choose..."
-                    />
-                  )}
-                />
-              </Grid> */}
-
-              {/* Buttons */}
-              {/* <Grid item xs={2} sx={{ display: "flex", gap: 2, justifyContent: "flex-end" }}>
-                <Button 
-                  variant="contained" 
-                  color="primary" 
-                  onClick={handleFilter}
-                  disabled={siteTableLoading}
-                >
-                  {siteTableLoading ? "Filtering..." : "Filter"}
-                </Button>
-                <Button
-                  variant="text" 
-                  color="primary"
-                  startIcon={<Icon icon="system-uicons:reset-alt" />}
-                  onClick={handleResetFilter}
-                  disabled={siteTableLoading}
-                >
-                  Reset
-                </Button>
-              </Grid> */}
             </Grid>
 
             <Divider sx={{ m: '0 !important' }} />
 
-            <DataGrid
-              autoHeight
-              paginationMode='server'
-              onPageChange={handlePageChange}
-              loading={appliedFilters.byHours ? hoursTableLoading : appliedFilters.byAdUnit ? adunitTableLoading : siteTableLoading}
-              rowHeight={62}
-              rows={data}
-              columns={SiteTableColumn}
-              pageSize={pageSize}
-              rowCount={totalRow}
-              disableSelectionOnClick
-              rowsPerPageOptions={[10, 25, 50, 100]}
-              onPageSizeChange={handlePageSizeChange}
-              page={pageNumber - 1}
-              components={{
-                Footer: () => <CustomFooter totals={totals} filteredData={appliedFilters} />
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: 'auto',
+                width: '100%'
               }}
-            />
+            >
+              {/* Table Content with Custom Footer */}
+              <Box
+                sx={{
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  width: '100%',
+                  '&::-webkit-scrollbar': {
+                    height: '8px'
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: 'rgba(0,0,0,0.1)',
+                    borderRadius: '4px'
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0,0,0,0.5)'
+                    }
+                  }
+                }}
+              >
+                <DataGrid
+                  autoHeight
+                  paginationMode='server'
+                  onPageChange={handlePageChange}
+                  loading={appliedFilters.byHours ? hoursTableLoading : appliedFilters.byAdUnit ? adunitTableLoading : siteTableLoading}
+                  rowHeight={62}
+                  rows={data}
+                  columns={SiteTableColumn}
+                  pageSize={pageSize}
+                  rowCount={totalRow}
+                  disableSelectionOnClick
+                  rowsPerPageOptions={[10, 25, 50, 100]}
+                  onPageSizeChange={handlePageSizeChange}
+                  page={pageNumber - 1}
+                  components={{
+                    Footer: () => <CustomFooter totals={totals} filteredData={appliedFilters} selectedAdExchange={selectedAdExchange} />
+                  }}
+                  sx={{
+                    minWidth: 'max-content', // Ensure DataGrid doesn't shrink below content width
+                    '& .MuiDataGrid-main': {
+                      overflow: 'visible !important'
+                    },
+                    '& .MuiDataGrid-virtualScroller': {
+                      overflow: 'visible !important'
+                    },
+                    '& .MuiDataGrid-footerContainer': {
+                      overflow: 'visible !important',
+                      borderTop: '1px solid',
+                      borderColor: 'divider'
+                    },
+                    '& .MuiDataGrid-pagination': {
+                      display: 'none !important' // Hide default pagination
+                    }
+                  }}
+                />
+              </Box>
+
+              {/* Separate Pagination - Matching MUI DataGrid Design */}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  padding: '8px 16px',
+                  borderTop: '1px solid',
+                  borderColor: 'divider',
+                  backgroundColor: 'background.paper',
+                  minHeight: '52px' // Match DataGrid pagination height
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'text.secondary',
+                        fontSize: '0.875rem',
+                        fontWeight: 400
+                      }}
+                    >
+                      Rows per page:
+                    </Typography>
+                    <FormControl size="small" sx={{ maxWidth: 70 }}>
+                      <Select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(e.target.value)}
+                        variant="standard"
+                        disableUnderline
+                        sx={{
+                          fontSize: '0.875rem',
+                          fontWeight: 400,
+                          color: 'text.secondary',
+                          '& .MuiSelect-select': {
+                            padding: '0 8px !important',
+                            paddingRight: '24px !important',
+                            minWidth: 'auto !important'
+                          },
+                          '& .MuiSelect-select.MuiInputBase-input': {
+                            minWidth: 'auto !important'
+                          },
+                          '& .MuiSelect-select.MuiInputBase-input.MuiInput-input': {
+                            minWidth: 'auto !important'
+                          },
+                          '& .MuiSelect-select.MuiInputBase-input.MuiInput-input:focus': {
+                            backgroundColor: 'transparent !important',
+                            borderRadius: '0 !important'
+                          },
+                          '& .MuiSelect-icon': {
+                            color: 'text.secondary',
+                            fontSize: '1rem'
+                          }
+                        }}
+                      >
+                        {[10, 25, 50, 100].map((size) => (
+                          <MenuItem key={size} value={size} sx={{ fontSize: '0.875rem' }}>
+                            {size}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: 'text.secondary',
+                      fontSize: '0.875rem',
+                      fontWeight: 400
+                    }}
+                  >
+                    {`${(pageNumber - 1) * pageSize + 1}-${Math.min(pageNumber * pageSize, totalRow)} of ${totalRow}`}
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Button
+                      size="small"
+                      onClick={() => handlePageChange(pageNumber - 2)}
+                      disabled={pageNumber <= 1}
+                      sx={{
+                        minWidth: 'auto',
+                        padding: '8px',
+                        color: pageNumber <= 1 ? 'action.disabled' : 'action.active',
+                        '&:hover': {
+                          backgroundColor: pageNumber <= 1 ? 'transparent' : 'action.hover'
+                        },
+                        '&:disabled': {
+                          color: 'action.disabled'
+                        }
+                      }}
+                    >
+                      <Icon icon="icon-park-outline:left" width="20" height="20" />
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => handlePageChange(pageNumber)}
+                      disabled={pageNumber * pageSize >= totalRow}
+                      sx={{
+                        minWidth: 'auto',
+                        padding: '8px',
+                        color: pageNumber * pageSize >= totalRow ? 'action.disabled' : 'action.active',
+                        '&:hover': {
+                          backgroundColor: pageNumber * pageSize >= totalRow ? 'transparent' : 'action.hover'
+                        },
+                        '&:disabled': {
+                          color: 'action.disabled'
+                        }
+                      }}
+                    >
+                      <Icon icon="icon-park-outline:right" width="20" height="20" />
+                    </Button>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
           </Card>
           <AdvancedMUIStyleFilter
             siteList={siteList}
@@ -851,6 +900,10 @@ const SiteTable = () => {
             setByCountry={setByCountry}
             setByAdUnit={setByAdUnit}
             setByHours={setByHours}
+            tempSelections={tempSelections}
+            setTempSelections={setTempSelections}
+            appliedSelections={appliedSelections}
+            setAppliedSelections={setAppliedSelections}
           />
           {addUserOpen && (
             <AddSiteTable

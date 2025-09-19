@@ -44,6 +44,15 @@ const themeOptions = settings => {
             '"Segoe UI Symbol"'
           ].join(',')
       },
+      components: {
+        MuiDialogContent: {
+          styleOverrides: {
+            root: {
+              padding: 0,
+            },
+          },
+        },
+      },  
       shadows: shadows(mode === 'semi-dark' ? 'light' : mode),
       ...spacing,
       breakpoints: breakpoints(),
