@@ -48,7 +48,7 @@ function CustomFooter({ totals, filteredData }) {
             width: '100%'
           }}
         >
-          <Box sx={{ minWidth: 300 }}>
+          <Box sx={{ minWidth: 250 }}>
             <Typography
               noWrap
               sx={{ color: 'text.secondary', fontWeight: 'bold', fontSize: '16px', paddingLeft: '20px' }}
@@ -69,15 +69,20 @@ function CustomFooter({ totals, filteredData }) {
               <Typography noWrap>—</Typography>
             </Box>
           )}
+          {filteredData?.byAdUnit && (
+            <Box sx={{ minWidth: 300, px: 4 }}>
+              <Typography noWrap>—</Typography>
+            </Box>
+          )}
           {filteredData?.byDated && (
-            <Box sx={{ minWidth: 180, px: 4 }}>
+            <Box sx={{ minWidth: 200, px: 4 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
 
           {/* Impressions */}
           <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
-            <Typography noWrap>{totals?.impressions}</Typography>
+            <Typography noWrap>{totals?.impressions ?? 0}</Typography>
           </Box>
 
           {/* CTR */}
@@ -91,7 +96,7 @@ function CustomFooter({ totals, filteredData }) {
           </Box>
 
           {/* Revenue */}
-          <Box sx={{ minWidth: 220, textAlign: 'right', px: 4 }}>
+          <Box sx={{ minWidth: 150, textAlign: 'right', px: 4 }}>
             <Typography noWrap>US${(totals?.revenue ?? 0).toFixed(2)}</Typography>
           </Box>
 
@@ -405,7 +410,7 @@ const SiteTable = () => {
   // Define columns
   let SiteTableColumn = [
     {
-      minWidth: 300,
+      minWidth: 250,
       field: 'site',
       headerName: 'Site',
       renderCell: ({ row }) => (
@@ -444,10 +449,26 @@ const SiteTable = () => {
         }
       ]
       : []),
+    ...(appliedFilters.byAdUnit
+      ? [
+        {
+          minWidth: 300,
+          field: 'adUnit',
+          headerName: 'Ad Unit',
+          renderCell: ({ row }) => (
+            <Typography noWrap sx={{ color: 'text.secondary' }}>
+              {row?.id
+                ? row.id.split('-').slice(4).join('-')
+                : '--'}
+            </Typography>
+          )
+        }
+      ]
+      : []),
     ...(appliedFilters.byDated
       ? [
           {
-          minWidth: 180,
+          minWidth: 200,
             field: 'date',
             headerName: 'Date',
             renderCell: ({ row }) => (
@@ -500,7 +521,7 @@ const SiteTable = () => {
       )
     },
     {
-      minWidth: 220,
+      minWidth: 150,
       field: 'revenue',
       headerName: 'Revenue',
       align: 'right',
@@ -511,7 +532,7 @@ const SiteTable = () => {
       )
     },
     {
-      minWidth: 90,
+      minWidth: 100,
       field: 'clicks',
       headerName: 'Clicks',
       align: 'right',
