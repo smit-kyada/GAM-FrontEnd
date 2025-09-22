@@ -137,21 +137,21 @@ const Index = () => {
       }
     },
 
-    {
-      minWidth: 150,
-      field: 'deatail',
-      headerName: 'Detail',
-      renderCell: ({ row }) => {
+    // {
+    //   minWidth: 150,
+    //   field: 'deatail',
+    //   headerName: 'Detail',
+    //   renderCell: ({ row }) => {
 
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button variant='text' color='secondary' component={Link} href={`/site/siteDetails/${encodeURIComponent(row?.site)}`}>
-              Detail
-            </Button>
-          </Box>
-        )
-      }
-    },
+    //     return (
+    //       <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    //         <Button variant='text' color='secondary' component={Link} href={`/site/siteDetails/${encodeURIComponent(row?.site)}`}>
+    //           Detail
+    //         </Button>
+    //       </Box>
+    //     )
+    //   }
+    // },
   ]
 
   if (auth?.user?.showTotalGameUser) {

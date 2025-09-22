@@ -163,21 +163,21 @@ const Index = () => {
     //     )
     //   }
     // },
-    {
-      minWidth: 130,
-      field: 'deatail',
-      headerName: 'Detail',
-      renderCell: ({ row }) => {
+    // {
+    //   minWidth: 130,
+    //   field: 'deatail',
+    //   headerName: 'Detail',
+    //   renderCell: ({ row }) => {
 
-        return (
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Button variant='text' color='secondary' component={Link} href={`/site/siteDetails/${row?.id}`}>
-              Detail
-            </Button>
-          </Box>
-        )
-      }
-    },
+    //     return (
+    //       <Box sx={{ display: 'flex', alignItems: 'center' }}>
+    //         <Button variant='text' color='secondary' component={Link} href={`/site/siteDetails/${row?.id}`}>
+    //           Detail
+    //         </Button>
+    //       </Box>
+    //     )
+    //   }
+    // },
   ]
 
 
