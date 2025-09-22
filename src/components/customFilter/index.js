@@ -29,13 +29,9 @@ import { useTheme } from '@emotion/react'
 import { format } from 'date-fns'
 
 const dimensionData = {
-  matrix: {
-    name: 'Matrix',
-    type: 'matrix'
-  },
-  country: {
-    name: 'Country',
-    type: 'list'
+  dimension: {
+    name: 'Dimension',
+    type: 'Dimension'
   },
   date: {
     name: 'Date',
@@ -43,6 +39,10 @@ const dimensionData = {
   },
   site: {
     name: 'Site',
+    type: 'list'
+  },
+  country: {
+    name: 'Country',
     type: 'list'
   },
   adexchange: {
@@ -352,7 +352,7 @@ export default function AdvancedMUIStyleFilter({
   appliedSelections,
   setAppliedSelections
 }) {
-  const [selectedDimension, setSelectedDimension] = useState('matrix')
+  const [selectedDimension, setSelectedDimension] = useState('dimension')
   const [searchText, setSearchText] = useState('')
 
   const theme = useTheme()
@@ -416,7 +416,7 @@ export default function AdvancedMUIStyleFilter({
       case 'Ad-Exchange':
         return ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
 
-      case 'Matrix':
+      case 'Dimension':
         return [
           'Date-True',
           'Date-False',
@@ -483,7 +483,7 @@ export default function AdvancedMUIStyleFilter({
         newSelections = currentSelections.filter(v => v !== value)
       } else {
         // For Matrix dimension, implement mutual exclusion logic
-        if (selectionKey === 'Matrix') {
+        if (selectionKey === 'Dimension') {
           // Define mutually exclusive groups
           const mutuallyExclusiveGroups = {
             hours: ['Country', 'adUnits'],
@@ -519,7 +519,7 @@ export default function AdvancedMUIStyleFilter({
       if (dimensionName === 'Site') {
         updateSiteSelection(newSelections)
       }
-      if (dimensionName === 'Matrix') {
+      if (dimensionName === 'Dimension') {
         matrixValues(newSelections)
       }
 
@@ -562,7 +562,7 @@ export default function AdvancedMUIStyleFilter({
       if (dimensionName === 'Site') {
         updateSiteSelection(newSelections)
       }
-      if (dimensionName === 'Matrix') {
+      if (dimensionName === 'Dimension') {
         matrixValues(newSelections)
       }
 
@@ -574,7 +574,7 @@ export default function AdvancedMUIStyleFilter({
   }
   const handleClose = () => {
     setOpen(false)
-    setSelectedDimension('matrix')
+    setSelectedDimension('dimension')
     setSearchText('')
   }
 
@@ -605,7 +605,7 @@ export default function AdvancedMUIStyleFilter({
         if (dimension === 'Site') {
           updateSiteSelection(values)
         }
-        if (dimension === 'Matrix') {
+        if (dimension === 'Dimension') {
           matrixValues(values)
         }
       }
@@ -752,7 +752,7 @@ export default function AdvancedMUIStyleFilter({
             {selectedDimension && currentDimensionData && (
               <>
                 {/* Special handling for Matrix dimension */}
-                {currentDimensionData.type === 'matrix' ? (
+                {currentDimensionData.type === 'Dimension' ? (
                   <Paper variant='outlined' sx={{}}>
                     {/* Matrix Header */}
                     <Box
@@ -763,11 +763,11 @@ export default function AdvancedMUIStyleFilter({
                       }}
                     >
                       <Typography variant='h6' sx={{ color: 'primary.main', fontWeight: 500 }}>
-                        Matrix
+                        Dimension
                       </Typography>
                     </Box>
 
-                    {/* Two Column Layout for Matrix */}
+                    {/* Two Column Layout for Dimension */}
                     <Box
                       sx={{
                         display: 'grid',
