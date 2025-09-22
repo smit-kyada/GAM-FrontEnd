@@ -73,7 +73,7 @@ const BlankLayoutAppBar = () => {
             />
           </svg> */}
 
-          <img src="/images/apple-touch-icon.png" width={52} height={42} alt="logo" />
+          <img src="/images/vasuki-fav.svg" width={52} height={42} alt="logo" />
           <Typography
             variant='h6'
             sx={{

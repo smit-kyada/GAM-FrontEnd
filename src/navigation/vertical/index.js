@@ -41,13 +41,13 @@ const navigation = () => {
       action: 'read',
       subject: 'siteTable-p',
       children: [
-        {
-          path: '/siteTable',
-          action: 'read',
-          subject: 'siteTable-p',
-          title: 'SiteTable',
-          icon: 'fluent-mdl2:live-site',
-        },
+        // {
+        //   path: '/siteTable',
+        //   action: 'read',
+        //   subject: 'siteTable-p',
+        //   title: 'SiteTable',
+        //   icon: 'fluent-mdl2:live-site',
+        // },
 
         // {
         //   path: '/country',

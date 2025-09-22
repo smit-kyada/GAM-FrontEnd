@@ -59,7 +59,7 @@ const renderClient = row => {
       </CustomAvatar>
     )
   } else {
-    return <CustomAvatar src={`/images/apple-touch-icon.png`} sx={{ mr: 2.5, width: 38, height: 38 }} />
+    return <CustomAvatar src={`/images/vasuki-fav.svg`} sx={{ mr: 2.5, width: 38, height: 38 }} />
   }
 }
 
