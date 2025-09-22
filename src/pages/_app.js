@@ -100,13 +100,12 @@ const App = props => {
   const apolloClient = useApollo(pageProps.initialApolloState);
 
   return (
-
     <CacheProvider value={emotionCache}>
       <Head>
         <title>{`${themeConfig.templateName} - Let's grow revenue`}</title>
         <meta
           name='description'
-          content={`${themeConfig.templateName} - For Funcliq Affiliate Partners`}
+          content={`${themeConfig.templateName} - For Vasuki Affiliate Partners`}
         />
         <meta name='keywords' content='' />
         <meta name='viewport' content='initial-scale=1, width=device-width' />

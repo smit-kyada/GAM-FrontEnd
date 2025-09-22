@@ -146,7 +146,7 @@ const Home = () => {
 
         <Grid item xs={12}>
           <Card>
-            <CardHeader title='Welcome to Funcliq 🚀'></CardHeader>
+            <CardHeader title='Welcome to Vasuki 🚀'></CardHeader>
             <CardContent>
               <Typography sx={{ mb: 2 }}>
                 {/* All the best for your new project. */}

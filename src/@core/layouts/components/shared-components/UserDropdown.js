@@ -55,7 +55,7 @@ const renderClient = row => {
         color={row.avatarColor}
         sx={{ mr: 2.5, width: 38, height: 38, fontSize: '1rem', fontWeight: 500 }}
       >
-        {getInitials(row.userName ? row.userName : 'Funcliq')}
+        {getInitials(row.userName ? row.userName : 'Vasuki')}
       </CustomAvatar>
     )
   } else {

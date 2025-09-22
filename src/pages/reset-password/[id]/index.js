@@ -114,7 +114,7 @@ const ResetPasswordV1 = () => {
         <Card>
           <CardContent sx={{ p: theme => `${theme.spacing(10.5, 8, 8)} !important` }}>
             <Box sx={{ mb: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <img src="/images/Funcliq.png" width="70%" alt="logo" />
+              <img src="/images/vasuki-logo.svg" width="70%" alt="logo" />
               <Typography sx={{ ml: 2.5, fontWeight: 600, fontSize: '1.625rem', lineHeight: 1.385 }}>
                 {/* {themeConfig.templateName} */}
               </Typography>
