@@ -75,6 +75,7 @@ const LoginPage = () => {
     resolver: yupResolver(schema)
   })
 
+
   // ** Hook
 
   const auth = useAuth();
@@ -179,7 +180,7 @@ const LoginPage = () => {
                         />
                       )}
                     />
-                    {errors.email && <FormHelperText sx={{ color: 'error.main' }}>{errors.email.message && "email or site is a required field"}</FormHelperText>}
+                    {errors.email && <FormHelperText sx={{ color: 'error.main' }}>{errors.email.message || "email or site is a required field"}</FormHelperText>}
                   </FormControl>
                   <FormControl fullWidth sx={{ mb: 1.5 }}>
                     <InputLabel htmlFor='auth-login-password' error={Boolean(errors.password)}>
