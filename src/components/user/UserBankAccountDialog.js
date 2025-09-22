@@ -1,5 +1,5 @@
 // ** React Imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 // ** MUI Imports
 import Box from '@mui/material/Box'
@@ -94,11 +94,17 @@ const UserBankAccountDialog = ({ isUser, children }) => {
   const [iconSrc, setIconSrc] = useState("")
   const [iconinputValue, setIconInputValue] = useState('')
   const [iconbase64, setIconBase64] = useState("")
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const [isGST, setIsGST] = useState(false)
   const [gstNum, setGstNum] = useState(false)
 
-
+  // Control dialog open state
+  useEffect(() => {
+    if (isUserBankAccountData) {
+      setDialogOpen(auth?.user?.isEmailVerified && !isUserBankAccountData?.IsUserBankAcc);
+    }
+  }, [isUserBankAccountData, auth?.user?.isEmailVerified]);
 
   const convertToBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -178,6 +184,7 @@ const UserBankAccountDialog = ({ isUser, children }) => {
     }).then((result) => {
       setDisable(false);
       toast.success('Account Successfully Added!')
+      setDialogOpen(false)
       isUserBankAccountRefetch()
       reset()
     }).catch((error) => {
@@ -190,6 +197,7 @@ const UserBankAccountDialog = ({ isUser, children }) => {
   }
 
   const handleClose = () => {
+    setDialogOpen(false)
     isUserBankAccountRefetch()
     reset()
   }
@@ -197,7 +205,8 @@ const UserBankAccountDialog = ({ isUser, children }) => {
   return (
     <>
       {isUserBankAccountData && <Dialog
-        open={auth?.user?.isEmailVerified && !isUserBankAccountData?.IsUserBankAcc}
+        open={dialogOpen}
+        onClose={handleClose}
         aria-labelledby='customized-dialog-title'
         sx={{ '& .MuiDialog-paper': { overflow: 'visible' } }}
         fullWidth

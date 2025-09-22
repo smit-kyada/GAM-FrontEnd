@@ -137,7 +137,7 @@ const LoginPage = () => {
                   d='M7.77295 16.3566L23.6563 0H32V6.88383C32 6.88383 31.8262 9.17836 30.6591 10.4057L19.7824 22H13.6938L7.77295 16.3566Z'
                 />
               </svg> */}
-              <img src="/images/Funcliq.png" width="70%" alt="logo" />
+              <img src="/images/vasuki-logo.svg" width="70%" alt="logo" />
               <Typography sx={{ ml: 2.5, fontWeight: 600, fontSize: '1.625rem', lineHeight: 1.385 }}>
                 {/* {themeConfig.templateName} */}
               </Typography>
