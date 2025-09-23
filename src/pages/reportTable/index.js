@@ -1163,18 +1163,6 @@ const SiteTable = () => {
                   </Button>
                 </Grid>
 
-                <Grid item>
-                  <Button
-                    onClick={handleDownloadCSV}
-                    variant='outlined'
-                    startIcon={<Icon icon='tabler:download' />}
-                    size='small'
-                    disabled={!data || data.length === 0}
-                  >
-                    Download CSV
-                  </Button>
-                </Grid>
-
                 <Grid item xs>
                   <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {appliedFiltersText.map(filter => (
