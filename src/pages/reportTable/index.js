@@ -596,12 +596,9 @@ const SiteTable = () => {
           toast.success(`Hours-wise CSV downloaded successfully! (${csvResponse.totalRecords} records)`, { id: 'csv-download' })
         } else {
           console.error("Invalid response structure:", result.data)
-          console.error("Expected csvData field in downloadHoursWiseCSV response")
-          toast.error("Invalid response from server - missing CSV data", { id: 'csv-download' })
         }
       } catch (error) {
         console.error("Error downloading hours-wise CSV:", error)
-        toast.error("Failed to download CSV: " + (error.message || "Unknown error"), { id: 'csv-download' })
       }
       return
     }
@@ -675,7 +672,6 @@ const SiteTable = () => {
           toast.success(`Ad Unit CSV downloaded successfully! (${csvResponse.totalRecords} records)`, { id: 'csv-download' })
         } else {
           console.error("Invalid response structure for Ad Unit CSV:", result.data)
-          console.error("Expected csvData field in downloadAdUnitReportCSV response")
           toast.error("Invalid response from server - missing CSV data", { id: 'csv-download' })
         }
       } catch (error) {
