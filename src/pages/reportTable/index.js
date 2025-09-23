@@ -621,11 +621,11 @@ const SiteTable = () => {
 
         // Prepare variables for Ad Unit CSV download
         const variables = {
-          site: appliedFilters.selectedSites, // [String!] - non-nullable array
+          site: appliedFilters.selectedSites, 
           country: appliedFilters.selectedCountries.length > 0 && appliedFilters.byCountry ? appliedFilters.selectedCountries : [],
-          startDate: format(appliedFilters.startDate, 'yyyy-MM-dd'), // String! - non-nullable
-          endDate: format(appliedFilters.endDate, 'yyyy-MM-dd'), // String! - non-nullable
-          byDated: appliedFilters.byDated // Boolean! - non-nullable
+          startDate: format(appliedFilters.startDate, 'yyyy-MM-dd'),
+          endDate: format(appliedFilters.endDate, 'yyyy-MM-dd'),
+          byDated: appliedFilters.byDated
         }
 
         const result = await downloadAdUnitReportCSV({
