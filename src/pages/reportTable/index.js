@@ -1,5 +1,5 @@
 import { useQuery } from '@apollo/client'
-import { Box, Button, Typography, Select, MenuItem, FormControl } from '@mui/material'
+import { Box, Button, Typography, Select, MenuItem, FormControl, IconButton } from '@mui/material'
 import Card from '@mui/material/Card'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
@@ -176,6 +176,9 @@ const SiteTable = () => {
   const [appliedFiltersText, setAppliedFiltersText] = useState([]);
 
   const [open, setOpen] = useState(false);
+
+  // Ad Exchange metric selection state - now supports multiple selection
+  const [selectedMetrics, setSelectedMetrics] = useState(['Clicks', 'Impressions', 'Page views', 'Impression RPM']);
 
   // Applied filters state to track when to make API calls
   const [appliedFilters, setAppliedFilters] = useState({
@@ -695,6 +698,151 @@ const SiteTable = () => {
               </Grid>
             </Grid>
 
+            <Divider sx={{ m: '0 !important' }} />
+            {/* Ad Exchange Metric Buttons */}
+            <Grid container spacing={3} alignItems='center' xs={12}>
+              <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                      {/* All metric buttons with interactive selection */}
+                      {[
+                        { label: 'Estimated earnings', icon: 'tabler:check' },
+                        { label: 'Page views', icon: 'tabler:eye' },
+                        { label: 'Page RPM', icon: 'tabler:trending-up' },
+                        { label: 'Impressions', icon: 'tabler:presentation' },
+                        { label: 'Impression RPM', icon: 'tabler:currency-dollar' },
+                        { label: 'CTR', icon: 'tabler:click' },
+                        { label: 'Clicks', icon: 'tabler:cursor-click' },
+                        { label: 'CPC', icon: 'tabler:coin' },
+                        { label: 'Ad requests', icon: 'tabler:request' },
+                        { label: 'Matched ad requests', icon: 'tabler:check-circle' },
+                        { label: 'Ad impressions', icon: 'tabler:photo' }
+                      ].map((metric) => {
+                        const isSelected = selectedMetrics.includes(metric.label);
+                        return (
+                          <Button
+                            key={metric.label}
+                            variant={isSelected ? 'contained' : 'outlined'}
+                            startIcon={<Icon icon={isSelected ? 'tabler:check' : metric.icon} />}
+                            size='small'
+                            onClick={() => {
+                              setSelectedMetrics(prev => {
+                                if (prev.includes(metric.label)) {
+                                  // Remove from selection
+                                  return prev.filter(m => m !== metric.label);
+                                } else {
+                                  // Add to selection
+                                  return [...prev, metric.label];
+                                }
+                              });
+                            }}
+                            sx={{
+                              minWidth: 'auto',
+                              px: 2,
+                              py: 1,
+                              borderRadius: 2,
+                              textTransform: 'none',
+                              fontWeight: isSelected ? 600 : 400,
+                              backgroundColor: isSelected ? theme.palette.primary.main : 'transparent',
+                              color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                              borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
+                              '&:hover': {
+                                backgroundColor: isSelected
+                                  ? theme.palette.primary.dark
+                                  : theme.palette.action.hover,
+                                borderColor: theme.palette.primary.main
+                              }
+                            }}
+                          >
+                            {metric.label}
+                          </Button>
+                        );
+                      })}
+                    </Box>
+
+                    {/* Edit icon */}
+                    <IconButton size='small' sx={{ ml: 2 }}>
+                      <Icon icon='tabler:edit' />
+                    </IconButton>
+                  </Box>
+                </Grid>
+
+                {/* Selected Metrics Display */}
+                <Grid item xs={12}>
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    p: 2,
+                    backgroundColor: theme.palette.action.hover,
+                    borderRadius: 2,
+                    border: `1px solid ${theme.palette.divider}`
+                  }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Icon
+                        icon='tabler:check'
+                        style={{ fontSize: 20, color: theme.palette.primary.main }}
+                      />
+                      <Typography variant='h6' sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
+                        {selectedMetrics.length} Metric{selectedMetrics.length !== 1 ? 's' : ''} Selected
+                      </Typography>
+                    </Box>
+                    <Divider orientation='vertical' flexItem />
+                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <Typography variant='body2' color='text.secondary'>
+                        Selected:
+                      </Typography>
+                      {selectedMetrics.map((metric, index) => (
+                        <Box key={metric} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography variant='body2' sx={{ fontWeight: 500, color: theme.palette.primary.main }}>
+                            {metric}
+                          </Typography>
+                          {index < selectedMetrics.length - 1 && (
+                            <Typography variant='body2' color='text.secondary'>•</Typography>
+                          )}
+                        </Box>
+                      ))}
+                    </Box>
+                  </Box>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {appliedFiltersText.map(filter => (
+                      <Box
+                        key={filter.id}
+                        sx={{
+                          position: 'relative',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          backgroundColor: 'secondary.paper',
+                          border: '1px solid',
+                          borderColor: 'secondary.main',
+                          borderRadius: '16px',
+                          padding: '6px 12px 6px 12px',
+                          fontSize: '13px',
+                          color: 'secondary.light',
+                          maxWidth: '400px'
+                        }}
+                      >
+                        <Typography
+                          variant='body2'
+                          sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: '13px',
+                          }}
+                        >
+                          {filter.label}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Grid>
+              </Grid>
+            </Grid>
             <Divider sx={{ m: '0 !important' }} />
 
             <Box
