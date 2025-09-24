@@ -1,5 +1,5 @@
 import { useQuery } from '@apollo/client'
-import { Box, Button, Typography, Select, MenuItem, FormControl, IconButton } from '@mui/material'
+import { Box, Button, Typography, Select, MenuItem, FormControl, IconButton, Popover, TextField, List, ListItem, ListItemButton, ListItemText } from '@mui/material'
 import Card from '@mui/material/Card'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
@@ -7,6 +7,8 @@ import { DataGrid, GridFooterContainer, GridPagination } from '@mui/x-data-grid'
 import { useEffect, useState, useCallback } from 'react'
 import Moment from 'react-moment'
 import format from 'date-fns/format'
+import DatePicker from 'react-datepicker'
+import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
 import RowOptions from 'src/components/commonComponent/RowOptions'
 import { GET_ADUNIT_REPORTTABLES, GET_ALL_REPORTTABLES, GET_HOURS_REPORTTABLES } from 'src/graphql/query/reportTable'
 import { GET_ALL_SITES } from 'src/graphql/query/site'
@@ -179,6 +181,16 @@ const SiteTable = () => {
 
   // Ad Exchange metric selection state - now supports multiple selection
   const [selectedMetrics, setSelectedMetrics] = useState(['Clicks', 'Impressions', 'Page views', 'Impression RPM']);
+
+  // Date filter selection state
+  const [selectedDateRange, setSelectedDateRange] = useState('last30days');
+
+  // Custom date picker popover state
+  const [customDatePickerOpen, setCustomDatePickerOpen] = useState(false);
+  const [popoverAnchorEl, setPopoverAnchorEl] = useState(null);
+  const [selectedPreset, setSelectedPreset] = useState('custom');
+  const [tempStartDate, setTempStartDate] = useState(today);
+  const [tempEndDate, setTempEndDate] = useState(today);
 
   // Applied filters state to track when to make API calls
   const [appliedFilters, setAppliedFilters] = useState({
@@ -394,9 +406,118 @@ const SiteTable = () => {
   // Handle date range change
   const handleOnChange = dates => {
     const [start, end] = dates
-    setStartDate(start)
-    setEndDate(end)
+    setTempStartDate(start)
+    setTempEndDate(end)
   }
+
+  // Handle date range selection from filter buttons
+  const handleDateRangeChange = (range) => {
+    setSelectedDateRange(range);
+    const today = new Date();
+    let start, end;
+
+    switch (range) {
+      case 'today':
+        start = new Date(today);
+        end = new Date(today);
+        break;
+      case 'last7days':
+        start = new Date(today);
+        start.setDate(today.getDate() - 6);
+        end = new Date(today);
+        break;
+      case 'last30days':
+        start = new Date(today);
+        start.setDate(today.getDate() - 29);
+        end = new Date(today);
+        break;
+      case 'thismonth':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today);
+        break;
+      case 'lastmonth':
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case 'custom':
+        // Open custom date picker popover
+        setTempStartDate(startDate);
+        setTempEndDate(endDate);
+        setCustomDatePickerOpen(true);
+        return;
+      default:
+        return;
+    }
+
+    setStartDate(start);
+    setEndDate(end);
+  }
+
+  // Handle custom date picker preset selection
+  const handleCustomPresetSelection = (preset) => {
+    const today = new Date();
+    let start, end;
+
+    switch (preset) {
+      case 'today':
+        start = new Date(today);
+        end = new Date(today);
+        break;
+      case 'yesterday':
+        start = new Date(today);
+        start.setDate(today.getDate() - 1);
+        end = new Date(today);
+        end.setDate(today.getDate() - 1);
+        break;
+      case 'last7days':
+        start = new Date(today);
+        start.setDate(today.getDate() - 6);
+        end = new Date(today);
+        break;
+      case 'last30days':
+        start = new Date(today);
+        start.setDate(today.getDate() - 29);
+        end = new Date(today);
+        break;
+      case 'thismonth':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today);
+        break;
+      case 'lastmonth':
+        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        break;
+      case 'last3years':
+        start = new Date(today.getFullYear() - 3, today.getMonth(), today.getDate());
+        end = new Date(today);
+        break;
+      default:
+        return;
+    }
+
+    setTempStartDate(start);
+    setTempEndDate(end);
+    setSelectedPreset(preset);
+  }
+
+  // Handle custom date picker apply
+  const handleCustomDateApply = () => {
+    if (tempStartDate && tempEndDate) {
+      setStartDate(tempStartDate);
+      setEndDate(tempEndDate);
+      setSelectedDateRange('custom');
+      setCustomDatePickerOpen(false);
+      setPopoverAnchorEl(null);
+    }
+  }
+
+  // Handle custom date picker cancel
+  const handleCustomDateCancel = () => {
+    setCustomDatePickerOpen(false);
+    setPopoverAnchorEl(null);
+    setSelectedPreset('custom'); // Reset to custom when canceling
+  }
+
 
   // Handle reset filter - now resets countries, sites, byAdUnit, and byHours too
   const handleResetFilter = useCallback(() => {
@@ -424,6 +545,7 @@ const SiteTable = () => {
     setSelectedCountries([])
     setPageNumber(1)
     setPageSize(10)
+    setSelectedDateRange('last30days')
 
     // Reset tempSelections to default (all Ad-Exchange values selected)
     setTempSelections({
@@ -629,11 +751,13 @@ const SiteTable = () => {
       )
     })
   }
+
   return (
     <>
       <Grid container spacing={6.5}>
         <Grid item xs={12}>
           <Card>
+
             <Divider sx={{ m: '0 !important' }} />
 
             <TableHeader
@@ -699,6 +823,62 @@ const SiteTable = () => {
             </Grid>
 
             <Divider sx={{ m: '0 !important' }} />
+
+            {/* Date Filter Bar */}
+            <Grid container spacing={3} alignItems='center' xs={12}>
+              <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
+                    {[
+                      { label: 'Today', value: 'today' },
+                      { label: 'Last 7 days', value: 'last7days' },
+                      { label: 'Last 30 days', value: 'last30days' },
+                      { label: 'This month', value: 'thismonth' },
+                      { label: 'Last month', value: 'lastmonth' },
+                      { label: 'Custom', value: 'custom', hasDropdown: true }
+                    ].map((option) => {
+                      const isSelected = selectedDateRange === option.value;
+                      return (
+                        <Button
+                          key={option.value}
+                          variant={isSelected ? 'contained' : 'outlined'}
+                          startIcon={isSelected ? <Icon icon='tabler:check' /> : null}
+                          endIcon={option.hasDropdown ? <Icon icon='tabler:chevron-down' /> : null}
+                          size='small'
+                          onClick={(event) => {
+                            if (option.value === 'custom') {
+                              setPopoverAnchorEl(event.currentTarget);
+                            }
+                            handleDateRangeChange(option.value);
+                          }}
+                          sx={{
+                            minWidth: 'auto',
+                            px: 2,
+                            py: 1,
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: isSelected ? 600 : 400,
+                            backgroundColor: isSelected ? theme.palette.primary.main : 'transparent',
+                            color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                            borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
+                            '&:hover': {
+                              backgroundColor: isSelected
+                                ? theme.palette.primary.dark
+                                : theme.palette.action.hover,
+                              borderColor: theme.palette.primary.main
+                            }
+                          }}
+                        >
+                          {option.label}
+                        </Button>
+                      );
+                    })}
+                  </Box>
+                </Grid>
+              </Grid>
+            </Grid>
+            <Divider sx={{ m: '0 !important' }} />
+
             {/* Ad Exchange Metric Buttons */}
             <Grid container spacing={3} alignItems='center' xs={12}>
               <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
@@ -1062,6 +1242,206 @@ const SiteTable = () => {
           )}
         </Grid>
       </Grid>
+
+      {/* Custom Date Picker Popover */}
+      <Popover
+        open={customDatePickerOpen}
+        anchorEl={popoverAnchorEl}
+        onClose={handleCustomDateCancel}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'left',
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: '500px',
+            maxWidth: '500px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider'
+          }
+        }}
+      >
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+            Select Date Range
+          </Typography>
+          <Box sx={{ display: 'flex', height: '400px' }}>
+            {/* Left Sidebar - Preset Options */}
+            <Box sx={{
+              width: '200px',
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              backgroundColor: 'background.paper',
+              mr: 2
+            }}>
+              <List sx={{ p: 0 }}>
+                <ListItem sx={{ p: 0 }}>
+                  <ListItemButton
+                    selected={selectedPreset === 'custom'}
+                    onClick={() => setSelectedPreset('custom')}
+                    sx={{
+                      backgroundColor: selectedPreset === 'custom' ? 'primary.light' : 'transparent',
+                      color: selectedPreset === 'custom' ? 'primary.main' : 'text.secondary',
+                      position: 'relative',
+                      borderRight: selectedPreset === 'custom' ? '3px solid' : '3px solid transparent',
+                      borderRightColor: selectedPreset === 'custom' ? 'primary.main' : 'transparent',
+                      borderRadius: 0,
+                      '&:hover': {
+                        backgroundColor: selectedPreset === 'custom' ? 'primary.light' : 'action.hover'
+                      }
+                    }}
+                  >
+                    <ListItemText
+                      primary="Custom"
+                      sx={{
+                        '& .MuiListItemText-primary': {
+                          fontWeight: selectedPreset === 'custom' ? 600 : 500,
+                          fontSize: '14px',
+                          color: selectedPreset === 'custom' ? 'primary.main' : 'text.secondary'
+                        }
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+                {[
+                  { label: 'Today', value: 'today' },
+                  { label: 'Yesterday', value: 'yesterday' },
+                  { label: 'Last 7 days', value: 'last7days' },
+                  // { label: 'Last 30 days', value: 'last30days' },
+                  { label: 'This month', value: 'thismonth' },
+                  { label: 'Last month', value: 'lastmonth' },
+                  // { label: 'Last 3 years', value: 'last3years' }
+                ].map((preset) => (
+                  <ListItem key={preset.value} sx={{ p: 0 }}>
+                    <ListItemButton
+                      selected={selectedPreset === preset.value}
+                      onClick={() => handleCustomPresetSelection(preset.value)}
+                      sx={{
+                        backgroundColor: selectedPreset === preset.value ? 'primary.light' : 'transparent',
+                        color: selectedPreset === preset.value ? 'primary.main' : 'text.secondary',
+                        position: 'relative',
+                        borderRight: selectedPreset === preset.value ? '3px solid' : '3px solid transparent',
+                        borderRightColor: selectedPreset === preset.value ? 'primary.main' : 'transparent',
+                        borderRadius: 0,
+                        '&:hover': {
+                          backgroundColor: selectedPreset === preset.value ? 'primary.light' : 'action.hover'
+                        }
+                      }}
+                    >
+                      <ListItemText
+                        primary={preset.label}
+                        sx={{
+                          '& .MuiListItemText-primary': {
+                            fontSize: '14px',
+                            color: selectedPreset === preset.value ? 'primary.main' : 'text.secondary',
+                            fontWeight: selectedPreset === preset.value ? 600 : 500
+                          }
+                        }}
+                      />
+                    </ListItemButton>
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+
+            {/* Right Main Area - Date Picker */}
+            <Box sx={{ flex: 1 }}>
+              {/* Date Input Fields */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                <TextField
+                  label="Start date"
+                  type="date"
+                  value={tempStartDate ? format(tempStartDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => setTempStartDate(new Date(e.target.value))}
+                  size="small"
+                  sx={{ minWidth: '150px', maxWidth: '150px' }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                  -
+                </Typography>
+                <TextField
+                  label="End date"
+                  type="date"
+                  value={tempEndDate ? format(tempEndDate, 'yyyy-MM-dd') : ''}
+                  onChange={(e) => setTempEndDate(new Date(e.target.value))}
+                  size="small"
+                  sx={{ minWidth: '150px', maxWidth: '150px' }}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                />
+              </Box>
+
+              {/* Calendar View */}
+              <Box sx={{
+                p: 2,
+                backgroundColor: 'background.paper',
+                maxWidth: '500px'
+              }}>
+                <DatePickerWrapper>
+                  <DatePicker
+                    selectsRange
+                    showIcon={true}
+                    endDate={tempEndDate}
+                    selected={tempStartDate}
+                    startDate={tempStartDate}
+                    id='date-range-picker'
+                    onChange={handleOnChange}
+                    shouldCloseOnSelect={false}
+                    popperPlacement={popperPlacement}
+                    inline
+                    monthsShown={1}
+                    dropdownMode="select"
+                    dateFormat="MM/dd/yyyy"
+                    className="react-datepicker-custom"
+                    calendarClassName="react-datepicker-custom-calendar"
+                  />
+                </DatePickerWrapper>
+              </Box>
+            </Box>
+
+
+          </Box>
+          {/* Action Buttons */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 2,
+            mt: 2,
+            pt: 2,
+            borderTop: '1px solid',
+            borderColor: 'divider'
+          }}>
+            <Button
+              onClick={handleCustomDateCancel}
+              sx={{ color: 'primary.main' }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCustomDateApply}
+              variant="contained"
+              sx={{
+                backgroundColor: 'primary.main',
+                '&:hover': {
+                  backgroundColor: 'primary.dark'
+                }
+              }}
+            >
+              Apply
+            </Button>
+          </Box>
+        </Box>
+      </Popover>
     </>
   )
 }
