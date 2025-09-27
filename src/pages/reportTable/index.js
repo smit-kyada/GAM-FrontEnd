@@ -51,7 +51,7 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
 
           {/* Country column (if enabled) */}
 
-          {filteredData?.byCountry && (
+          {filteredData?.selectedCountries?.length > 0 && filteredData?.byCountry && (
             <Box sx={{ minWidth: 180, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
@@ -67,7 +67,7 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
             </Box>
           )}
           {filteredData?.byDated && (
-            <Box sx={{ minWidth: 120, px: 4, flexShrink: 0 }}>
+            <Box sx={{ minWidth: 125, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
@@ -185,8 +185,6 @@ const SiteTable = () => {
   // Date filter selection state
   const [selectedDateRange, setSelectedDateRange] = useState('today');
 
-  console.log("data ----------------", data)
-
   // Custom date picker popover state
   const [customDatePickerOpen, setCustomDatePickerOpen] = useState(false);
   const [popoverAnchorEl, setPopoverAnchorEl] = useState(null);
@@ -248,7 +246,7 @@ const SiteTable = () => {
       limit: appliedFilters.pageSize,
       site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : siteList,
       byDated: appliedFilters.byDated,
-      country: appliedFilters.byCountry ? appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : ["ALL"] : null,
+      country: appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : null,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
       endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
     },
@@ -268,7 +266,7 @@ const SiteTable = () => {
       limit: appliedFilters.pageSize,
       site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : siteList,
       byDated: appliedFilters.byDated,
-      country: appliedFilters.byCountry ? appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : ["ALL"] : null,
+      country: appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : null,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
       endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
     },
@@ -374,12 +372,25 @@ const SiteTable = () => {
   // Update site list when siteDatas changes
   useEffect(() => {
     if (siteDatas?.getAllSites?.data) {
-      setSiteList(
-        [...new Set(siteDatas.getAllSites.data.map(item => item.site?.trim() ?? ""))]
-      );     
-    }
-  }, [siteDatas])
+      const newSiteList = [...new Set(siteDatas.getAllSites.data.map(item => item.site?.trim() ?? ""))];
+      setSiteList(newSiteList);
 
+      // Set all sites as selected by default if no sites are currently selected
+      if (selectedSites.length === 0) {
+        setSelectedSites(newSiteList);
+      }
+    }
+  }, [siteDatas, selectedSites.length])
+
+  // Update appliedFilters.selectedSites when selectedSites changes
+  useEffect(() => {
+    if (selectedSites.length > 0) {
+      setAppliedFilters(prev => ({
+        ...prev,
+        selectedSites: selectedSites
+      }));
+    }
+  }, [selectedSites])
 
   // Debounce site search to avoid too many API calls
   useEffect(() => {
@@ -1224,7 +1235,7 @@ const SiteTable = () => {
         </Box>
       )
     },
-    ...(hasCountryData
+    ...(appliedFilters.byCountry && hasCountryData
       ? [
           {
           minWidth: 180,
@@ -1251,7 +1262,7 @@ const SiteTable = () => {
           )
         }
       ]
-      : []),
+      : []), 
     ...(appliedFilters.byAdUnit
       ? [
         {
@@ -1271,7 +1282,7 @@ const SiteTable = () => {
     ...(appliedFilters.byDated
       ? [
           {
-          minWidth: 120,
+          minWidth: 125,
             field: 'date',
             headerName: 'Date',
             renderCell: ({ row }) => (
@@ -1522,17 +1533,6 @@ const SiteTable = () => {
                         }}
                       >
                         Add
-                        <Box
-                          sx={{
-                            position: 'absolute',
-                            top: -2,
-                            right: 8,
-                            width: 6,
-                            height: 6,
-                            borderRadius: '50%',
-                            backgroundColor: 'primary.main'
-                          }}
-                        />
                       </Button>
                     </Box>
 
