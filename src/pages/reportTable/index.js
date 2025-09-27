@@ -392,6 +392,21 @@ const SiteTable = () => {
     }
   }, [selectedSites])
 
+  // Clear country selection when byHours is true
+  useEffect(() => {
+    if (byHours) {
+      setSelectedCountries([]);
+      setAppliedFilters(prev => ({
+        ...prev,
+        selectedCountries: []
+      }));
+      // Remove country filters from appliedFiltersText
+      setAppliedFiltersText(prev => prev.filter(filter =>
+        !filter.label?.toLowerCase().includes('country')
+      ));
+    }
+  }, [byHours])
+
   // Debounce site search to avoid too many API calls
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -809,9 +824,17 @@ const SiteTable = () => {
   );
 
   // Filter search options based on input
-  const filteredSearchOptions = searchFilterOptions.filter(option =>
-    option.toLowerCase().includes(searchFilterText.toLowerCase())
-  );
+  const filteredSearchOptions = searchFilterOptions
+    .filter(option => {
+      // Hide Country option when byHours is true
+      if (byHours && option === 'Country') {
+        return false;
+      }
+      return true;
+    })
+    .filter(option =>
+      option.toLowerCase().includes(searchFilterText.toLowerCase())
+    );
 
   // Handle site selection
   const handleSiteSelection = (event) => {
@@ -1007,7 +1030,7 @@ const SiteTable = () => {
         )}
 
         {/* Country Chip */}
-        {appliedFilters.selectedCountries?.length > 0 && (
+        {appliedFilters.selectedCountries?.length > 0 && !byHours && (
           <Box
             sx={{
               display: 'flex',
@@ -1702,7 +1725,15 @@ const SiteTable = () => {
 
                 <Grid item xs={12}>
                   <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {appliedFiltersText.map(filter => (
+                    {appliedFiltersText
+                      .filter(filter => {
+                        // Hide country filter when byHours is true
+                        if (byHours && filter.label?.toLowerCase().includes('country')) {
+                          return false;
+                        }
+                        return true;
+                      })
+                      .map(filter => (
                       <Box
                         key={filter.id}
                         sx={{
@@ -1736,6 +1767,7 @@ const SiteTable = () => {
                 </Grid>
               </Grid>
             </Grid>
+
             <Divider sx={{ m: '0 !important' }} />
 
             <Box
