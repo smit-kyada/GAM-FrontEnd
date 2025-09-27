@@ -1261,7 +1261,7 @@ const SiteTable = () => {
           renderCell: ({ row }) => (
             <Typography noWrap sx={{ color: 'text.secondary' }}>
               {row?.id
-                ? row.id.split('-').slice(4).join('-')
+                ? row.id.split('-').slice(5).join('-')
                 : '--'}
             </Typography>
           )
