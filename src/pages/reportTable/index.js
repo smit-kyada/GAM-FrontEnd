@@ -662,6 +662,8 @@ const SiteTable = () => {
         'Dimension': dimensionSelections
       }));
 
+      handleBreakdownsDropdownClose();
+
       return newBreakdowns;
     });
   };
