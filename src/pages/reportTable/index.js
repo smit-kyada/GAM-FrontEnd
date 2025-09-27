@@ -51,7 +51,7 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
 
           {/* Country column (if enabled) */}
 
-          {filteredData?.selectedCountries?.length > 0 && filteredData?.byCountry && (
+          {filteredData?.byCountry && (
             <Box sx={{ minWidth: 180, px: 4, flexShrink: 0 }}>
               <Typography noWrap>—</Typography>
             </Box>
@@ -246,8 +246,7 @@ const SiteTable = () => {
       limit: appliedFilters.pageSize,
       site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
       byDated: appliedFilters.byDated,
-      country:
-        appliedFilters.selectedCountries.length && appliedFilters.byCountry ? appliedFilters.selectedCountries : null,
+      country: appliedFilters.byCountry ? appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : ["ALL"] : null,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
       endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
     },
@@ -267,8 +266,7 @@ const SiteTable = () => {
       limit: appliedFilters.pageSize,
       site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
       byDated: appliedFilters.byDated,
-      country:
-        appliedFilters.selectedCountries.length && appliedFilters.byCountry ? appliedFilters.selectedCountries : null,
+      country: appliedFilters.byCountry ? appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : ["ALL"] : null,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
       endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
     },
@@ -405,7 +403,7 @@ const SiteTable = () => {
 
     setPageNumber(1)
     setAppliedFilters(newFilters)
-  }, [startDate, endDate, pageSize, byDated, byCountry, byAdUnit, byHours, appliedFilters.selectedSites]) // Added appliedFilters.selectedSites to check initial state
+  }, [startDate, endDate, pageSize, byDated, appliedFilters.byCountry, byAdUnit, byHours, appliedFilters.selectedSites]) // Added appliedFilters.selectedSites to check initial state
 
   // Handle pagination changes
   const handlePageChange = useCallback(newPage => {
@@ -1763,10 +1761,14 @@ const SiteTable = () => {
                   onPageSizeChange={handlePageSizeChange}
                   page={pageNumber - 1}
                   components={{
-                    Footer: () => <CustomFooter totals={totals} filteredData={appliedFilters} selectedAdExchange={selectedAdExchange} />
+                    Footer: () => <CustomFooter
+                      totals={totals}
+                      filteredData={appliedFilters} selectedAdExchange={selectedAdExchange}
+                      key={`footer-${JSON.stringify(totals)}-${JSON.stringify(appliedFilters)}-${JSON.stringify(selectedAdExchange)}`}
+                    />
                   }}
                   sx={{
-                    minWidth: 'max-content', // Ensure DataGrid doesn't shrink below content width
+                    minWidth: 'max-content',
                     '& .MuiDataGrid-main': {
                       overflow: 'visible !important'
                     },
@@ -1774,7 +1776,7 @@ const SiteTable = () => {
                       overflow: 'visible !important'
                     },
                     '& .MuiDataGrid-footerContainer': {
-                      overflow: 'visible !important',
+                      // overflow: 'visible !important',
                       borderTop: '1px solid',
                       borderColor: 'divider'
                     },
