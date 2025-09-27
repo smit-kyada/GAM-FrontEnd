@@ -79,37 +79,37 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
                 name: 'Impressions',
                 minWidth: 150,
                 value: totals?.impressions ?? 0,
-                format: (val) => val
+                format: (val) => val?.toLocaleString() || '0'
               },
               {
                 name: 'CTR',
                 minWidth: 130,
                 value: totals?.ctr ?? 0,
-                format: (val) => `${val.toFixed(2)}%`
+                format: (val) => `${(val || 0).toFixed(2)}%`
               },
               {
                 name: 'ECPM',
                 minWidth: 150,
                 value: totals?.ecpm ?? 0,
-                format: (val) => `US$${val.toFixed(2)}`
+                format: (val) => `US$${(val || 0).toFixed(2)}`
               },
               {
                 name: 'Revenue',
                 minWidth: 150,
                 value: totals?.revenue ?? 0,
-                format: (val) => `US$${val.toFixed(2)}`
+                format: (val) => `US$${(val || 0).toFixed(2)}`
               },
               {
                 name: 'Clicks',
                 minWidth: 100,
                 value: totals?.clicks ?? 0,
-                format: (val) => val
+                format: (val) => val?.toLocaleString() || '0'
               },
               {
                 name: 'Match Rate',
                 minWidth: 100,
                 value: totals?.matchRate ?? 0,
-                format: (val) => `${val.toFixed(2)}%`
+                format: (val) => `${(val || 0).toFixed(2)}%`
               }
             ]
 
@@ -125,7 +125,7 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
 
             return getAdExchangeFooterColumns().map((column, index) => (
               <Box key={index} sx={{ minWidth: column.minWidth, textAlign: 'right', px: 4, flexShrink: 0 }}>
-                <Typography noWrap>{column.format(column.value)}</Typography>
+                <Typography noWrap sx={{ fontWeight: 'bold' }}>{column.format(column.value)}</Typography>
               </Box>
             ))
           })()}
@@ -184,6 +184,8 @@ const SiteTable = () => {
 
   // Date filter selection state
   const [selectedDateRange, setSelectedDateRange] = useState('today');
+
+  console.log("data ----------------", data)
 
   // Custom date picker popover state
   const [customDatePickerOpen, setCustomDatePickerOpen] = useState(false);
@@ -244,7 +246,7 @@ const SiteTable = () => {
     variables: {
       page: appliedFilters.pageNumber,
       limit: appliedFilters.pageSize,
-      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
+      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : siteList,
       byDated: appliedFilters.byDated,
       country: appliedFilters.byCountry ? appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : ["ALL"] : null,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
@@ -264,7 +266,7 @@ const SiteTable = () => {
     variables: {
       page: appliedFilters.pageNumber,
       limit: appliedFilters.pageSize,
-      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
+      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : siteList,
       byDated: appliedFilters.byDated,
       country: appliedFilters.byCountry ? appliedFilters.selectedCountries.length > 0 ? appliedFilters.selectedCountries : ["ALL"] : null,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
@@ -284,7 +286,7 @@ const SiteTable = () => {
     variables: {
       page: appliedFilters.pageNumber,
       limit: appliedFilters.pageSize,
-      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : null,
+      site: appliedFilters.selectedSites.length ? appliedFilters.selectedSites : siteList,
       startDate: appliedFilters.startDate ? format(appliedFilters.startDate, 'yyyy-MM-dd') : null,
       endDate: appliedFilters.endDate ? format(appliedFilters.endDate, 'yyyy-MM-dd') : null
     },
@@ -320,7 +322,13 @@ const SiteTable = () => {
       if (siteTableData?.getReports) {
         const { docs, totalDocs, totals } = siteTableData.getReports
 
-        setData(docs)
+        // Add unique IDs to prevent duplicate key warnings
+        const dataWithUniqueIds = docs.map((item, index) => ({
+          ...item,
+          id: `${index}-${item.id}`
+        }))
+
+        setData(dataWithUniqueIds)
         setTotalRow(totalDocs)
         setTotals(totals)
       }
@@ -332,7 +340,13 @@ const SiteTable = () => {
       if (adunitTableData?.getAdUnitReports) {
         const { docs, totalDocs, totals } = adunitTableData.getAdUnitReports;
 
-        setData(docs)
+        // Add unique IDs to prevent duplicate key warnings
+        const dataWithUniqueIds = docs.map((item, index) => ({
+          ...item,
+          id: `${index}-${item.id}`
+        }))
+
+        setData(dataWithUniqueIds)
         setTotalRow(totalDocs)
         setTotals(totals)
       }
@@ -344,7 +358,13 @@ const SiteTable = () => {
       if (hoursTableData?.getHoursWiseReports) {
         const { docs, totalDocs, totals } = hoursTableData.getHoursWiseReports;
 
-        setData(docs)
+        // Add unique IDs to prevent duplicate key warnings
+        const dataWithUniqueIds = docs.map((item, index) => ({
+          ...item,
+          id: `${index}-${item.id}`
+        }))
+
+        setData(dataWithUniqueIds)
         setTotalRow(totalDocs)
         setTotals(totals)
       }
@@ -403,7 +423,7 @@ const SiteTable = () => {
 
     setPageNumber(1)
     setAppliedFilters(newFilters)
-  }, [startDate, endDate, pageSize, byDated, appliedFilters.byCountry, byAdUnit, byHours, appliedFilters.selectedSites]) // Added appliedFilters.selectedSites to check initial state
+  }, [startDate, endDate, pageSize, byDated, byCountry, byAdUnit, byHours, appliedFilters.selectedSites]) // Added appliedFilters.selectedSites to check initial state
 
   // Handle pagination changes
   const handlePageChange = useCallback(newPage => {
