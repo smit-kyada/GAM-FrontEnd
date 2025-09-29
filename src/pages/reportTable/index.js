@@ -1,5 +1,5 @@
-import { useQuery, useLazyQuery } from '@apollo/client'
-import { Box, Button, Typography, Select, MenuItem, FormControl, IconButton, Popover, TextField, List, ListItem, ListItemButton, ListItemText, InputAdornment } from '@mui/material'
+import { useQuery, useMutation } from '@apollo/client'
+import { Box, Button, Typography, Select, MenuItem, FormControl, TextField, InputAdornment, IconButton, Popover, List, ListItem, ListItemButton, ListItemText } from '@mui/material'
 import Card from '@mui/material/Card'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
@@ -11,6 +11,7 @@ import DatePicker from 'react-datepicker'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
 import RowOptions from 'src/components/commonComponent/RowOptions'
 import { GET_ADUNIT_REPORTTABLES, GET_ALL_REPORTTABLES, GET_HOURS_REPORTTABLES } from 'src/graphql/query/reportTable'
+import { DOWNLOAD_HOURS_WISE_CSV, DOWNLOAD_AD_UNIT_REPORT_CSV, DOWNLOAD_DAILY_REPORT_CSV } from 'src/graphql/mutation/reportTable'
 import { GET_ALL_SITES } from 'src/graphql/query/site'
 import { useAuth } from 'src/hooks/useAuth'
 import AddSiteTable from 'src/views/siteTable/list/AddSiteTable'
@@ -19,6 +20,7 @@ import { useTheme } from '@emotion/react'
 import { Icon } from '@iconify/react'
 import AdvancedMUIStyleFilter from 'src/components/customFilter'
 import toast from 'react-hot-toast'
+import * as XLSX from 'xlsx'
 
 var siteTableRes
 
@@ -30,7 +32,7 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
           fontWeight: 'bold',
           overflow: 'hidden',
           width: '100%',
-          minWidth: 'max-content' // Ensure footer content doesn't shrink
+          minWidth: 'max-content'
         }}
       >
         <Box
@@ -84,7 +86,11 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
               {
                 name: 'CTR',
                 minWidth: 130,
-                value: totals?.ctr ?? 0,
+                value: (() => {
+                  const totalImpressions = totals?.impressions || 0
+                  const totalClicks = totals?.clicks || 0
+                  return totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
+                })(),
                 format: (val) => `${(val || 0).toFixed(2)}%`
               },
               {
@@ -110,6 +116,18 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
                 minWidth: 100,
                 value: totals?.matchRate ?? 0,
                 format: (val) => `${(val || 0).toFixed(2)}%`
+              },
+              {
+                name: 'Cost Per Click',
+                minWidth: 120,
+                value: totals?.costPerClick ?? 0,
+                format: (val) => `US$${(val || 0).toFixed(2)}`
+              },
+              {
+                name: 'Total Requests',
+                minWidth: 130,
+                value: totals?.totalRequests ?? 0,
+                format: (val) => val
               }
             ]
 
@@ -145,7 +163,7 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
 
 const SiteTable = () => {
   const { user } = useAuth()
-  const today = new Date()
+  const today = useMemo(() => new Date(), [])
 
   // ** State
   const [pageSize, setPageSize] = useState(10)
@@ -167,12 +185,12 @@ const SiteTable = () => {
   const [byAdUnit, setByAdUnit] = useState(false)
   const [byHours, setByHours] = useState(false)
   const [tempSelections, setTempSelections] = useState({
-    'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+    'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate', 'Cost Per Click', 'Total Requests']
   });
 
   // Applied selections state - only updates when Apply button is clicked
   const [appliedSelections, setAppliedSelections] = useState({
-    'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+    'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate', 'Cost Per Click', 'Total Requests']
   });
 
   const [appliedFiltersText, setAppliedFiltersText] = useState([]);
@@ -196,7 +214,7 @@ const SiteTable = () => {
   const [breakdownsDropdownOpen, setBreakdownsDropdownOpen] = useState(false);
   const [breakdownsAnchorEl, setBreakdownsAnchorEl] = useState(null);
   const [breakdownsSearchText, setBreakdownsSearchText] = useState('');
-  const [selectedBreakdowns, setSelectedBreakdowns] = useState([]);
+  const [selectedBreakdowns, setSelectedBreakdowns] = useState(['Date']);
 
   // Search/Filter state
   const [searchFilterText, setSearchFilterText] = useState('');
@@ -232,7 +250,12 @@ const SiteTable = () => {
   // ** Hook
   const theme = useTheme()
   const { direction } = theme
-  const popperPlacement = direction === 'ltr' ? 'bottom-start' : 'bottom-end';
+  const popperPlacement = direction === 'ltr' ? 'bottom-start' : 'bottom-end'
+
+  // GraphQL mutations for CSV download
+  const [downloadHoursWiseCSV] = useMutation(DOWNLOAD_HOURS_WISE_CSV)
+  const [downloadAdUnitReportCSV] = useMutation(DOWNLOAD_AD_UNIT_REPORT_CSV)
+  const [downloadDailyReportCSV] = useMutation(DOWNLOAD_DAILY_REPORT_CSV)
 
   // Graphql query for report tables - conditionally calls based on byHours and byAdUnit flags
   const {
@@ -254,6 +277,7 @@ const SiteTable = () => {
     notifyOnNetworkStatusChange: true,
     skip: appliedFilters.byAdUnit || appliedFilters.byHours // Skip when byAdUnit OR byHours is true
   })
+
 
   const {
     loading: adunitTableLoading,
@@ -380,17 +404,10 @@ const SiteTable = () => {
         setSelectedSites(newSiteList);
       }
     }
-  }, [siteDatas, selectedSites.length])
+  }, [siteDatas]) // Removed selectedSites.length dependency to prevent infinite loop
 
-  // Update appliedFilters.selectedSites when selectedSites changes
-  useEffect(() => {
-    if (selectedSites.length > 0) {
-      setAppliedFilters(prev => ({
-        ...prev,
-        selectedSites: selectedSites
-      }));
-    }
-  }, [selectedSites])
+  // Note: appliedFilters.selectedSites is now only updated when Apply button is clicked
+  // This prevents automatic filtering when sites are just selected in the popover
 
   // Clear country selection when byHours is true
   useEffect(() => {
@@ -529,7 +546,19 @@ const SiteTable = () => {
     setTempSelections(prev => ({
       ...prev,
       'Date': [dateRange]
+      // Preserve existing Dimension selections - don't override them
     }));
+
+    // Ensure breakdown states are preserved when date changes
+    // This prevents the country column from disappearing
+    if (appliedFilters.byCountry) {
+      setAppliedFilters(prev => ({
+        ...prev,
+        startDate: start,
+        endDate: end,
+        byCountry: true // Explicitly preserve byCountry state
+      }));
+    }
   }
 
   // Handle custom date picker preset selection
@@ -597,6 +626,16 @@ const SiteTable = () => {
         ...prev,
         'Date': [dateRange]
       }));
+
+      // Ensure breakdown states are preserved when custom date is applied
+      if (appliedFilters.byCountry) {
+        setAppliedFilters(prev => ({
+          ...prev,
+          startDate: tempStartDate,
+          endDate: tempEndDate,
+          byCountry: true // Explicitly preserve byCountry state
+        }));
+      }
     }
   }
 
@@ -669,6 +708,32 @@ const SiteTable = () => {
       setByCountry(newBreakdowns.includes('Country'));
       setByAdUnit(newBreakdowns.includes('Ad Units'));
       setByHours(newBreakdowns.includes('Hours'));
+
+      // Update appliedFilters with breakdown states immediately
+      setAppliedFilters(prevFilters => ({
+        ...prevFilters,
+        byDated: newBreakdowns.includes('Date'),
+        byCountry: newBreakdowns.includes('Country'),
+        byAdUnit: newBreakdowns.includes('Ad Units'),
+        byHours: newBreakdowns.includes('Hours')
+      }));
+
+      // If Country is selected, add all countries to the search bar filter
+      if (newBreakdowns.includes('Country') && !prev.includes('Country')) {
+        // Add all countries to the applied filters
+        setAppliedFilters(prevFilters => ({
+          ...prevFilters,
+          selectedCountries: countryValues,
+          byCountry: true
+        }));
+      } else if (!newBreakdowns.includes('Country') && prev.includes('Country')) {
+        // Remove all countries from the applied filters when Country breakdown is deselected
+        setAppliedFilters(prevFilters => ({
+          ...prevFilters,
+          selectedCountries: [],
+          byCountry: false
+        }));
+      }
 
       // Update tempSelections to sync with custom filter
       const dimensionSelections = [];
@@ -783,10 +848,14 @@ const SiteTable = () => {
   // Site selection options - using the sites from siteList
   const siteSelectionOptions = siteList || [];
 
+  // Check if site data is still loading
+  const isSiteDataLoading = siteLoading || siteSelectionOptions.length === 0;
+
   // Filter sites based on search
   const filteredSiteOptions = siteSelectionOptions.filter(site =>
     site.toLowerCase().includes(siteSelectionSearchText.toLowerCase())
   );
+
 
   // Country selection options
   const countryValues = [
@@ -867,12 +936,19 @@ const SiteTable = () => {
   };
 
   const handleSelectAllSites = () => {
-    const allSelected = filteredSiteOptions.length > 0 &&
-      filteredSiteOptions.every(site => selectedSites.includes(site));
+    // Safety check: Don't proceed if no sites are available
+    if (filteredSiteOptions.length === 0) {
+      return;
+    }
 
-    if (allSelected) {
+    // Check if all filtered sites are currently selected
+    const allFilteredSitesSelected = filteredSiteOptions.every(site => selectedSites.includes(site));
+
+    if (allFilteredSitesSelected) {
+    // If all filtered sites are selected, deselect all filtered sites
       setSelectedSites(prev => prev.filter(site => !filteredSiteOptions.includes(site)));
     } else {
+      // If not all filtered sites are selected, select all filtered sites
       setSelectedSites(prev => {
         const newSelection = [...prev];
         filteredSiteOptions.forEach(site => {
@@ -891,6 +967,15 @@ const SiteTable = () => {
       ...prev,
       selectedSites: selectedSites
     }));
+
+    // Trigger data refetch to apply the site filter
+    if (appliedFilters.byHours) {
+      hoursReportTableRefetch();
+    } else if (appliedFilters.byAdUnit) {
+      adunitReportTableRefetch();
+    } else {
+      reportTableRefetch();
+    }
 
     // Close the popover
     setSiteSelectionOpen(false);
@@ -952,6 +1037,15 @@ const SiteTable = () => {
       ...prev,
       selectedCountries: selectedCountries
     }));
+
+    // Trigger data refetch to apply the country filter
+    if (appliedFilters.byHours) {
+      hoursReportTableRefetch();
+    } else if (appliedFilters.byAdUnit) {
+      adunitReportTableRefetch();
+    } else {
+      reportTableRefetch();
+    }
 
     // Close the popover
     setCountrySelectionOpen(false);
@@ -1136,16 +1230,16 @@ const SiteTable = () => {
 
     // Reset tempSelections to default (all Ad-Exchange values selected)
     setTempSelections({
-      'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+      'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate', 'Cost Per Click', 'Total Requests']
     })
 
     // Reset appliedSelections to default (all Ad-Exchange values selected)
     setAppliedSelections({
-      'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate']
+      'Ad-Exchange': ['Impressions', 'CTR', 'ECPM', 'Revenue', 'Clicks', 'Match Rate', 'Cost Per Click', 'Total Requests']
     })
 
-    // Reset selected breakdowns
-    setSelectedBreakdowns([])
+    // Reset selected breakdowns to default (Date only)
+    setSelectedBreakdowns(['Date'])
 
     // Reset site selection
     setSelectedSites([])
@@ -1154,13 +1248,442 @@ const SiteTable = () => {
     setAppliedFilters(resetFilters)
   }, [today])
 
-  // console.log(appliedSelections, "appliedSelections") asdkfk
-
   const hasCountryData = data.some(row => row.country)
   const hasHoursData = data.some(row => row.hour)
 
+
   // Get selected Ad-Exchange values from tempSelections
-  const selectedAdExchange = appliedSelections?.['Ad-Exchange'] || []
+  const selectedAdExchange = useMemo(() => appliedSelections?.['Ad-Exchange'] || [], [appliedSelections])
+
+  // Helper function to append totals to CSV data
+  const appendTotalsToCSV = useCallback((csvData, totals, appliedFilters, selectedAdExchange) => {
+    if (!totals || !csvData) return csvData
+
+
+    // Convert CSV string to array of rows
+    const csvRows = csvData.split('\n').filter(row => row.trim() !== '')
+
+    if (csvRows.length === 0) return csvData
+
+    // Get the header row to understand column structure
+    const headerRow = csvRows[0]
+    const headers = headerRow.split(',').map(h => h.trim().replace(/"/g, ''))
+
+    // Create totals row with same structure as headers
+    const totalsRow = []
+
+    for (let i = 0; i < headers.length; i++) {
+      const header = headers[i]
+
+      if (header === 'Site') {
+        totalsRow.push('TOTAL')
+      } else if (header === 'Country') {
+        totalsRow.push('--')
+      } else if (header === 'Hour') {
+        totalsRow.push('--')
+      } else if (header === 'Ad Unit') {
+        totalsRow.push('--')
+      } else if (header === 'Date') {
+        totalsRow.push('--')
+      } else if (header === 'Impressions') {
+        totalsRow.push(totals.impressions || 0)
+      } else if (header === 'CTR' || header === 'CTR (%)') {
+        // Calculate CTR as (total clicks / total impressions) * 100
+        const totalImpressions = totals.impressions || 0
+        const totalClicks = totals.clicks || 0
+        const calculatedCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
+        totalsRow.push(calculatedCTR.toFixed(2))
+      } else if (header === 'ECPM') {
+        totalsRow.push(totals.ecpm ? totals.ecpm.toFixed(2) : '0.00')
+      } else if (header === 'Revenue') {
+        totalsRow.push(totals.revenue ? totals.revenue.toFixed(2) : '0.00')
+      } else if (header === 'Clicks') {
+        totalsRow.push(totals.clicks || 0)
+      } else if (header === 'Match Rate') {
+        totalsRow.push(totals.matchRate ? totals.matchRate.toFixed(2) : '0.00')
+      } else if (header === 'Cost Per Click') {
+        totalsRow.push(totals.costPerClick ? totals.costPerClick.toFixed(2) : '0.00')
+      } else if (header === 'Total Requests') {
+        totalsRow.push(totals.totalRequests || 0)
+      } else {
+        // For any other columns, add empty value
+        totalsRow.push('--')
+      }
+    }
+
+    // Add totals row
+    csvRows.push(totalsRow.join(','))
+
+    // Return updated CSV data
+    return csvRows.join('\n')
+  }, [])
+
+  // CSV Download function
+  const handleDownloadCSV = useCallback(async () => {
+    if (!data || data.length === 0) {
+      toast.error("No data available to download")
+      return
+    }
+
+    // If byHours is true, call the API for CSV download
+    if (appliedFilters.byHours) {
+      try {
+        // Validate required parameters
+        if (!appliedFilters.selectedSites || appliedFilters.selectedSites.length === 0) {
+          toast.error("Please select at least one site for hours-wise CSV download")
+          return
+        }
+
+        if (!appliedFilters.startDate || !appliedFilters.endDate) {
+          toast.error("Please select start and end dates for hours-wise CSV download")
+          return
+        }
+
+        toast.loading("Preparing CSV download...", { id: 'csv-download' })
+
+        // Ensure we have valid non-null values as required by the backend schema
+        const variables = {
+          site: appliedFilters.selectedSites, // [String!] - non-nullable array
+          startDate: format(appliedFilters.startDate, 'yyyy-MM-dd'), // String! - non-nullable
+          endDate: format(appliedFilters.endDate, 'yyyy-MM-dd') // String! - non-nullable
+        }
+
+        const result = await downloadHoursWiseCSV({
+          variables
+        })
+
+        const csvResponse = result.data?.downloadHoursWiseCSV
+
+        if (csvResponse?.csvData) {
+          // Append totals to CSV data if available
+          let finalCSVData = csvResponse.csvData
+          if (csvResponse.totals) {
+            finalCSVData = appendTotalsToCSV(csvResponse.csvData, csvResponse.totals, appliedFilters, selectedAdExchange)
+          }
+
+          // Create blob from CSV data
+          const blob = new Blob([finalCSVData], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+
+          // Generate filename
+          const currentDate = format(new Date(), 'yyyy-MM-dd')
+          const filterInfo = []
+          if (appliedFilters.selectedSites.length > 0) {
+            filterInfo.push(`${appliedFilters.selectedSites.length} sites`)
+          }
+          filterInfo.push('by-hours')
+          const filterSuffix = filterInfo.length > 0 ? `_${filterInfo.join('-')}` : ''
+          const filename = `HoursWiseReport_${currentDate}${filterSuffix}.csv`
+
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+
+          toast.success(`Hours-wise CSV downloaded successfully! (${csvResponse.totalRecords} records)`, { id: 'csv-download' })
+        } else {
+          console.error("Invalid response structure:", result.data)
+        }
+      } catch (error) {
+        console.error("Error downloading hours-wise CSV:", error)
+      }
+      return
+    }
+
+    // If byAdUnit is true, call the API for Ad Unit CSV download
+    if (appliedFilters.byAdUnit) {
+      try {
+        // Validate required parameters
+        if (!appliedFilters.selectedSites || appliedFilters.selectedSites.length === 0) {
+          toast.error("Please select at least one site for ad unit CSV download")
+          return
+        }
+
+        if (!appliedFilters.startDate || !appliedFilters.endDate) {
+          toast.error("Please select start and end dates for ad unit CSV download")
+          return
+        }
+
+        toast.loading("Preparing Ad Unit CSV download...", { id: 'csv-download' })
+
+        // Prepare variables for Ad Unit CSV download
+        const variables = {
+          site: appliedFilters.selectedSites,
+          country: appliedFilters.selectedCountries.length > 0 && appliedFilters.byCountry ? appliedFilters.selectedCountries : [],
+          startDate: format(appliedFilters.startDate, 'yyyy-MM-dd'),
+          endDate: format(appliedFilters.endDate, 'yyyy-MM-dd'),
+          byDated: appliedFilters.byDated
+        }
+
+        const result = await downloadAdUnitReportCSV({
+          variables
+        })
+
+        const csvResponse = result.data?.downloadAdUnitReportCSV
+
+        if (csvResponse?.csvData) {
+          // Append totals to CSV data if available
+          let finalCSVData = csvResponse.csvData
+          if (csvResponse.totals) {
+            finalCSVData = appendTotalsToCSV(csvResponse.csvData, csvResponse.totals, appliedFilters, selectedAdExchange)
+          }
+
+          // Create blob from CSV data
+          const blob = new Blob([finalCSVData], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+
+          // Generate filename
+          const currentDate = format(new Date(), 'yyyy-MM-dd')
+          const filterInfo = []
+          if (appliedFilters.selectedSites.length > 0) {
+            filterInfo.push(`${appliedFilters.selectedSites.length} sites`)
+          }
+          if (appliedFilters.selectedCountries.length > 0) {
+            filterInfo.push(`${appliedFilters.selectedCountries.length} countries`)
+          }
+          filterInfo.push('by-adunit')
+          if (appliedFilters.byDated) {
+            filterInfo.push('by-date')
+          }
+          const filterSuffix = filterInfo.length > 0 ? `_${filterInfo.join('-')}` : ''
+          const filename = `AdUnitReport_${currentDate}${filterSuffix}.csv`
+
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+
+          toast.success(`Ad Unit CSV downloaded successfully! (${csvResponse.totalRecords} records)`, { id: 'csv-download' })
+        } else {
+          console.error("Invalid response structure for Ad Unit CSV:", result.data)
+          toast.error("Invalid response from server - missing CSV data", { id: 'csv-download' })
+        }
+      } catch (error) {
+        console.error("Error downloading ad unit CSV:", error)
+        toast.error("Failed to download Ad Unit CSV: " + (error.message || "Unknown error"), { id: 'csv-download' })
+      }
+      return
+    }
+
+    // If both byAdUnit and byHours are false, call the API for Daily Report CSV download
+    if (!appliedFilters.byAdUnit && !appliedFilters.byHours) {
+      try {
+        // Validate required parameters
+        if (!appliedFilters.selectedSites || appliedFilters.selectedSites.length === 0) {
+          toast.error("Please select at least one site for daily report CSV download")
+          return
+        }
+
+        if (!appliedFilters.startDate || !appliedFilters.endDate) {
+          toast.error("Please select start and end dates for daily report CSV download")
+          return
+        }
+
+        toast.loading("Preparing Daily Report CSV download...", { id: 'csv-download' })
+
+        // Prepare variables for Daily Report CSV download
+        const variables = {
+          site: appliedFilters.selectedSites, // [String!] - non-nullable array
+          country: appliedFilters.selectedCountries.length > 0 && appliedFilters.byCountry ? appliedFilters.selectedCountries : [],
+          startDate: format(appliedFilters.startDate, 'yyyy-MM-dd'), // String! - non-nullable
+          endDate: format(appliedFilters.endDate, 'yyyy-MM-dd'), // String! - non-nullable
+          byDated: appliedFilters.byDated // Boolean! - non-nullable
+        }
+
+        const result = await downloadDailyReportCSV({
+          variables
+        })
+
+        const csvResponse = result.data?.downloadDailyReportCSV
+
+        if (csvResponse?.csvData) {
+          // Append totals to CSV data if available
+          let finalCSVData = csvResponse.csvData
+          if (csvResponse.totals) {
+            finalCSVData = appendTotalsToCSV(csvResponse.csvData, csvResponse.totals, appliedFilters, selectedAdExchange)
+          }
+
+          // Create blob from CSV data
+          const blob = new Blob([finalCSVData], { type: 'text/csv' })
+          const url = window.URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+
+          // Generate filename
+          const currentDate = format(new Date(), 'yyyy-MM-dd')
+          const filterInfo = []
+          if (appliedFilters.selectedSites.length > 0) {
+            filterInfo.push(`${appliedFilters.selectedSites.length} sites`)
+          }
+          if (appliedFilters.selectedCountries.length > 0 && appliedFilters.byCountry) {
+            filterInfo.push(`${appliedFilters.selectedCountries.length} countries`)
+          }
+          filterInfo.push('daily-report')
+          if (appliedFilters.byDated) {
+            filterInfo.push('by-date')
+          }
+          const filterSuffix = filterInfo.length > 0 ? `_${filterInfo.join('-')}` : ''
+          const filename = `DailyReport_${currentDate}${filterSuffix}.csv`
+
+          link.download = filename
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+
+          toast.success(`Daily Report CSV downloaded successfully! (${csvResponse.totalRecords} records)`, { id: 'csv-download' })
+        } else {
+          console.error("Invalid response structure for Daily Report CSV:", result.data)
+          console.error("Expected csvData field in downloadDailyReportCSV response")
+          toast.error("Invalid response from server - missing CSV data", { id: 'csv-download' })
+        }
+      } catch (error) {
+        console.error("Error downloading daily report CSV:", error)
+        toast.error("Failed to download Daily Report CSV: " + (error.message || "Unknown error"), { id: 'csv-download' })
+      }
+      return
+    }
+
+    // For any other cases, use the existing client-side CSV generation
+    // Create CSV data based on current filters and selected columns
+    const csvData = data.map(item => {
+      const csvRow = {}
+
+      // Always include Site
+      csvRow['Site'] = item?.site || ''
+
+      // Include Country if byCountry is enabled
+      if (appliedFilters.byCountry && hasCountryData) {
+        csvRow['Country'] = item?.country || '--'
+      }
+
+      // Include Hour if byHours is enabled
+      if (appliedFilters.byHours && hasHoursData) {
+        csvRow['Hour'] = item?.hour || '--'
+      }
+
+      // Include Ad Unit if byAdUnit is enabled
+      if (appliedFilters.byAdUnit) {
+        csvRow['Ad Unit'] = item?.id ? item.id.split('-').slice(4).join('-') : '--'
+      }
+
+      // Include Date if byDated is enabled
+      if (appliedFilters.byDated) {
+        csvRow['Date'] = item?.date ? (
+          isNaN(Date.parse(item.date)) ? item.date : format(new Date(item.date), 'MM/dd/yyyy')
+        ) : '--'
+      }
+
+      // Include selected Ad-Exchange columns in the same order as table
+      if (selectedAdExchange.includes('Impressions')) {
+        csvRow['Impressions'] = item?.impressions || 0
+      }
+      if (selectedAdExchange.includes('CTR')) {
+        csvRow['CTR'] = item?.ctr ? item.ctr.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('ECPM')) {
+        csvRow['ECPM'] = item?.ecpm ? item.ecpm.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Revenue')) {
+        csvRow['Revenue'] = item?.revenue ? item.revenue.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Clicks')) {
+        csvRow['Clicks'] = item?.clicks || 0
+      }
+      if (selectedAdExchange.includes('Match Rate')) {
+        csvRow['Match Rate'] = item?.matchRate ? item.matchRate.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Cost Per Click')) {
+        csvRow['Cost Per Click'] = item?.costPerClick ? item.costPerClick.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Total Requests')) {
+        csvRow['Total Requests'] = item?.totalRequests || 0
+      }
+
+      return csvRow
+    })
+
+    // Add totals row if available
+    if (totals && Object.keys(totals).length > 0) {
+      const totalsRow = {}
+      totalsRow['Site'] = 'TOTAL'
+
+      if (appliedFilters.byCountry && hasCountryData) {
+        totalsRow['Country'] = '--'
+      }
+      if (appliedFilters.byHours && hasHoursData) {
+        totalsRow['Hour'] = '--'
+      }
+      if (appliedFilters.byAdUnit) {
+        totalsRow['Ad Unit'] = '--'
+      }
+      if (appliedFilters.byDated) {
+        totalsRow['Date'] = '--'
+      }
+
+      if (selectedAdExchange.includes('Impressions')) {
+        totalsRow['Impressions'] = totals?.impressions || 0
+      }
+      if (selectedAdExchange.includes('CTR')) {
+        // Calculate CTR as (total clicks / total impressions) * 100
+        const totalImpressions = totals?.impressions || 0
+        const totalClicks = totals?.clicks || 0
+        const calculatedCTR = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0
+        totalsRow['CTR'] = calculatedCTR.toFixed(2)
+      }
+      if (selectedAdExchange.includes('ECPM')) {
+        totalsRow['ECPM'] = totals?.ecpm ? totals.ecpm.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Revenue')) {
+        totalsRow['Revenue'] = totals?.revenue ? totals.revenue.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Clicks')) {
+        totalsRow['Clicks'] = totals?.clicks || 0
+      }
+      if (selectedAdExchange.includes('Match Rate')) {
+        totalsRow['Match Rate'] = totals?.matchRate ? totals.matchRate.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Cost Per Click')) {
+        totalsRow['Cost Per Click'] = totals?.costPerClick ? totals.costPerClick.toFixed(2) : '0.00'
+      }
+      if (selectedAdExchange.includes('Total Requests')) {
+        totalsRow['Total Requests'] = totals?.totalRequests || 0
+      }
+
+      csvData.push(totalsRow)
+    }
+
+    // Create Excel file
+    const sheet = XLSX.utils.json_to_sheet(csvData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Report Data')
+
+    // Generate filename with current date and filter info
+    const currentDate = format(new Date(), 'yyyy-MM-dd')
+    const filterInfo = []
+    if (appliedFilters.selectedSites.length > 0) {
+      filterInfo.push(`${appliedFilters.selectedSites.length} sites`)
+    }
+    if (appliedFilters.selectedCountries.length > 0) {
+      filterInfo.push(`${appliedFilters.selectedCountries.length} countries`)
+    }
+    if (appliedFilters.byAdUnit) filterInfo.push('by-adunit')
+    if (appliedFilters.byHours) filterInfo.push('by-hours')
+    if (appliedFilters.byCountry) filterInfo.push('by-country')
+    if (appliedFilters.byDated) filterInfo.push('by-date')
+
+    const filterSuffix = filterInfo.length > 0 ? `_${filterInfo.join('-')}` : ''
+    const filename = `Report_${currentDate}${filterSuffix}.xlsx`
+
+    XLSX.writeFile(workbook, filename)
+    toast.success("Report downloaded successfully!")
+  }, [data, appliedFilters, selectedAdExchange, totals, hasCountryData, hasHoursData, downloadHoursWiseCSV, downloadAdUnitReportCSV, downloadDailyReportCSV, appendTotalsToCSV])
 
   // Define all possible Ad-Exchange columns
   const allAdExchangeColumns = [
@@ -1229,6 +1752,28 @@ const SiteTable = () => {
           {(row?.matchRate).toFixed(2)}%
         </Typography>
       )
+    },
+    {
+      minWidth: 120,
+      field: 'costPerClick',
+      headerName: 'Cost Per Click',
+      align: 'right',
+      renderCell: ({ row }) => (
+        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+          US${row?.costPerClick ? row.costPerClick.toFixed(2) : '0.00'}
+        </Typography>
+      )
+    },
+    {
+      minWidth: 130,
+      field: 'totalRequests',
+      headerName: 'Total Requests',
+      align: 'right',
+      renderCell: ({ row }) => (
+        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+          {row?.totalRequests || 0}
+        </Typography>
+      )
     }
   ]
 
@@ -1285,7 +1830,7 @@ const SiteTable = () => {
           )
         }
       ]
-      : []), 
+      : []),
     ...(appliedFilters.byAdUnit
       ? [
         {
@@ -1377,6 +1922,12 @@ const SiteTable = () => {
                     Add filter
                   </Button>
                 </Grid>
+                <Grid item>
+                  <Button onClick={handleDownloadCSV} variant='contained' sx={{ '& svg': { mr: 2 } }}>
+                    <Icon fontSize='1.125rem' icon='tabler:download' />
+                    Download Excel
+                  </Button>
+                </Grid>
 
                 <Grid item xs>
                   <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1433,56 +1984,60 @@ const SiteTable = () => {
             <Divider sx={{ m: '0 !important' }} />
 
             {/* Date Filter Bar */}
-            <Grid container spacing={3} alignItems='center' xs={12}>
-              <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mb: 2 }}>
-                    {[
-                      { label: 'Today', value: 'today' },
-                      { label: 'Last 7 days', value: 'last7days' },
-                      { label: 'Last 30 days', value: 'last30days' },
-                      { label: 'This month', value: 'thismonth' },
-                      { label: 'Last month', value: 'lastmonth' },
-                      { label: 'Custom', value: 'custom', hasDropdown: true }
-                    ].map((option) => {
-                      const isSelected = selectedDateRange === option.value;
-                      return (
-                        <Button
-                          key={option.value}
-                          variant={isSelected ? 'contained' : 'outlined'}
-                          startIcon={isSelected ? <Icon icon='tabler:check' /> : null}
-                          endIcon={option.hasDropdown ? <Icon icon='tabler:chevron-down' /> : null}
-                          size='small'
-                          onClick={(event) => {
-                            if (option.value === 'custom') {
-                              setPopoverAnchorEl(event.currentTarget);
-                            }
-                            handleDateRangeChange(option.value);
-                          }}
-                          sx={{
-                            minWidth: 'auto',
-                            px: 2,
-                            py: 1,
-                            borderRadius: 2,
-                            textTransform: 'none',
-                            fontWeight: isSelected ? 600 : 400,
-                            backgroundColor: isSelected ? theme.palette.primary.main : 'transparent',
-                            color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
-                            borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
-                            '&:hover': {
-                              backgroundColor: isSelected
-                                ? theme.palette.primary.dark
-                                : theme.palette.action.hover,
-                              borderColor: theme.palette.primary.main
-                            }
-                          }}
-                        >
-                          {option.label}
-                        </Button>
-                      );
-                    })}
-                  </Box>
-                </Grid>
+            <Grid container spacing={3} alignItems='center' sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
+              <Grid item xs={12} sm={9}>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {[
+                    { label: 'Today', value: 'today' },
+                    { label: 'Last 7 days', value: 'last7days' },
+                    { label: 'Last 30 days', value: 'last30days' },
+                    { label: 'This month', value: 'thismonth' },
+                    { label: 'Last month', value: 'lastmonth' },
+                    { label: 'Custom', value: 'custom', hasDropdown: true }
+                  ].map((option) => {
+                    const isSelected = selectedDateRange === option.value;
+                    return (
+                      <Button
+                        key={option.value}
+                        variant={isSelected ? 'contained' : 'outlined'}
+                        startIcon={isSelected ? <Icon icon='tabler:check' /> : null}
+                        endIcon={option.hasDropdown ? <Icon icon='tabler:chevron-down' /> : null}
+                        size='small'
+                        onClick={(event) => {
+                          if (option.value === 'custom') {
+                            setPopoverAnchorEl(event.currentTarget);
+                          }
+                          handleDateRangeChange(option.value);
+                        }}
+                        sx={{
+                          minWidth: 'auto',
+                          px: 2,
+                          py: 1,
+                          borderRadius: 2,
+                          textTransform: 'none',
+                          fontWeight: isSelected ? 600 : 400,
+                          backgroundColor: isSelected ? theme.palette.primary.main : 'transparent',
+                          color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
+                          borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
+                          '&:hover': {
+                            backgroundColor: isSelected
+                              ? theme.palette.primary.dark
+                              : theme.palette.action.hover,
+                            borderColor: theme.palette.primary.main
+                          }
+                        }}
+                      >
+                        {option.label}
+                      </Button>
+                    );
+                  })}
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={3} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', sm: 'flex-end' }, mt: { xs: 2, sm: 0 } }}>
+                <Button onClick={handleDownloadCSV} variant='contained' sx={{ '& svg': { mr: 2 } }}>
+                  <Icon fontSize='1.125rem' icon='tabler:download' />
+                  Download Excel
+                </Button>
               </Grid>
             </Grid>
             <Divider sx={{ m: '0 !important' }} />
@@ -1678,9 +2233,9 @@ const SiteTable = () => {
                     </Box>
 
                     {/* Edit icon */}
-                    <IconButton size='small' sx={{ ml: 2 }}>
+                    {/* <IconButton size='small' sx={{ ml: 2 }}>
                       <Icon icon='tabler:edit' />
-                    </IconButton>
+                    </IconButton> */}
                   </Box>
                 </Grid>
 
@@ -1723,7 +2278,7 @@ const SiteTable = () => {
                   </Box>
                 </Grid> */}
 
-                <Grid item xs={12}>
+                {/* <Grid item xs={12}>
                   <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                     {appliedFiltersText
                       .filter(filter => {
@@ -1759,12 +2314,12 @@ const SiteTable = () => {
                             fontSize: '13px',
                           }}
                         >
-                          {filter.label}
+                          {filter.label} asd
                         </Typography>
                       </Box>
                     ))}
                   </Box>
-                </Grid>
+                </Grid> */}
               </Grid>
             </Grid>
 
@@ -2454,17 +3009,18 @@ const SiteTable = () => {
 
             {/* Select All */}
             <Box
-              onClick={handleSelectAllSites}
+              onClick={isSiteDataLoading ? undefined : handleSelectAllSites}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 padding: '12px 16px',
-                cursor: 'pointer',
+                cursor: isSiteDataLoading ? 'not-allowed' : 'pointer',
                 borderBottom: '1px solid',
                 borderBottomColor: 'divider',
                 fontWeight: '500',
+                opacity: isSiteDataLoading ? 0.5 : 1,
                 '&:hover': {
-                  backgroundColor: 'action.hover'
+                  backgroundColor: isSiteDataLoading ? 'transparent' : 'action.hover'
                 }
               }}
             >
@@ -2473,11 +3029,11 @@ const SiteTable = () => {
                   width: 16,
                   height: 16,
                   border: '1px solid',
-                  borderColor: filteredSiteOptions.length > 0 &&
+                  borderColor: filteredSiteOptions.length > 0 && 
                     filteredSiteOptions.every(site => selectedSites.includes(site))
                     ? 'primary.main' : 'divider',
                   borderRadius: '2px',
-                  backgroundColor: filteredSiteOptions.length > 0 &&
+                  backgroundColor: filteredSiteOptions.length > 0 && 
                     filteredSiteOptions.every(site => selectedSites.includes(site))
                     ? 'primary.main' : 'transparent',
                   display: 'flex',
@@ -2486,7 +3042,7 @@ const SiteTable = () => {
                   marginRight: '12px'
                 }}
               >
-                {filteredSiteOptions.length > 0 &&
+                {filteredSiteOptions.length > 0 && 
                   filteredSiteOptions.every(site => selectedSites.includes(site)) && (
                     <Icon
                       icon="tabler:check"
@@ -2498,7 +3054,12 @@ const SiteTable = () => {
                   )}
               </Box>
               <Typography variant='body2'>
-                Select All ({filteredSiteOptions.length})
+                {isSiteDataLoading
+                  ? 'Loading...'
+                  : `${filteredSiteOptions.length > 0 &&
+                    filteredSiteOptions.every(site => selectedSites.includes(site))
+                    ? 'Deselect All' : 'Select All'} (${filteredSiteOptions.length})`
+                }
               </Typography>
             </Box>
 
