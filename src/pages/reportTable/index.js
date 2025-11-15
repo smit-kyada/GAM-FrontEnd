@@ -7,6 +7,7 @@ import { DataGrid, GridFooterContainer, GridPagination } from '@mui/x-data-grid'
 import { useEffect, useState, useCallback, useMemo, useRef, forwardRef } from 'react'
 import Moment from 'react-moment'
 import format from 'date-fns/format'
+import { startOfDay, subDays, startOfMonth, endOfMonth, subMonths } from 'date-fns'
 import DatePicker from 'react-datepicker'
 import DatePickerWrapper from 'src/@core/styles/libs/react-datepicker'
 import RowOptions from 'src/components/commonComponent/RowOptions'
@@ -499,31 +500,31 @@ const SiteTable = () => {
   // Handle date range selection from filter buttons
   const handleDateRangeChange = (range) => {
     setSelectedDateRange(range);
-    const today = new Date();
+    const today = startOfDay(new Date());
+    const yesterday = subDays(today, 1);
     let start, end;
 
     switch (range) {
       case 'today':
-        start = new Date(today);
-        end = new Date(today);
+        start = today;
+        end = today;
         break;
       case 'last7days':
-        start = new Date(today);
-        start.setDate(today.getDate() - 6);
-        end = new Date(today);
+        start = subDays(yesterday, 6);
+        end = yesterday;
         break;
       case 'last30days':
-        start = new Date(today);
-        start.setDate(today.getDate() - 29);
-        end = new Date(today);
+        start = subDays(yesterday, 29);
+        end = yesterday;
         break;
       case 'thismonth':
-        start = new Date(today.getFullYear(), today.getMonth(), 1);
-        end = new Date(today);
+        start = startOfMonth(today);
+        end = today;
         break;
       case 'lastmonth':
-        start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        end = new Date(today.getFullYear(), today.getMonth(), 0);
+        const lastMonth = subMonths(today, 1);
+        start = startOfMonth(lastMonth);
+        end = endOfMonth(lastMonth);
         break;
       case 'custom':
         // Open custom date picker popover
@@ -2175,6 +2176,8 @@ const SiteTable = () => {
                         { label: 'Clicks', icon: 'ic:baseline-ads-click' },
                         { label: 'Revenue', icon: 'tabler:coin' },
                         { label: 'Match Rate', icon: 'tabler:a-b' },
+                        { label: 'Total Requests', icon: 'tabler:location-check' },
+                        { label: 'Cost Per Click', icon: 'streamline-freehand:e-commerce-click-buy' },
                       ].map((metric) => {
                         const isSelected = appliedSelections['Ad-Exchange']?.includes(metric.label) || false;
                         const isLastSelected = isSelected && (appliedSelections['Ad-Exchange']?.length || 0) <= 1;
