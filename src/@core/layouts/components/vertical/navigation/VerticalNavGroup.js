@@ -38,7 +38,7 @@ const MenuItemTextWrapper = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   gap: theme.spacing(2),
   justifyContent: 'space-between',
-  transition: 'opacity .25s ease-in-out',
+  transition: 'opacity .5s cubic-bezier(0.4, 0, 0.2, 1)',
   ...(themeConfig.menuTextTruncate && { overflow: 'hidden' })
 }))
 
@@ -157,7 +157,7 @@ const VerticalNavGroup = props => {
     if (mode === 'semi-dark') {
       return {
         '&:hover': {
-          backgroundColor: `rgba(${theme.palette.customColors.dark}, 0.04)`
+          backgroundColor: '#1F1F1F'
         },
         '& .MuiTypography-root, & :not(.menu-item-meta) > svg': {
           color: `rgba(${theme.palette.customColors.dark}, 0.6)`
@@ -165,13 +165,14 @@ const VerticalNavGroup = props => {
         '&.Mui-selected': {
           backgroundColor: `rgba(${theme.palette.customColors.dark}, 0.08)`,
           '&:hover': {
-            backgroundColor: `rgba(${theme.palette.customColors.dark}, 0.12)`
+            backgroundColor: '#1F1F1F'
           },
           '& .MuiTypography-root': {
-            fontWeight: 500
-          },
-          '& .MuiTypography-root, & :not(.menu-item-meta) > svg': {
+            fontWeight: 500,
             color: `rgba(${theme.palette.customColors.dark}, 0.87)`
+          },
+          '& :not(.menu-item-meta) > svg': {
+            color: `${theme.palette.primary.main} !important`
           },
           '& .menu-item-meta > svg': {
             color: `rgba(${theme.palette.customColors.dark}, 0.6)`
@@ -180,6 +181,9 @@ const VerticalNavGroup = props => {
       }
     } else {
       return {
+        '&:hover': {
+          backgroundColor: mode === 'dark' ? '#1F1F1F' : '#F1F1F1'
+        },
         '& .MuiTypography-root, & :not(.menu-item-meta) > svg': {
           color: 'text.secondary'
         },
@@ -188,8 +192,11 @@ const VerticalNavGroup = props => {
           '&:hover': {
             backgroundColor: 'action.hover'
           },
-          '& .MuiTypography-root, & :not(.menu-item-meta) > svg': {
+          '& .MuiTypography-root': {
             color: 'text.primary'
+          },
+          '& :not(.menu-item-meta) > svg': {
+            color: `${theme.palette.primary.main} !important`
           },
           '& .menu-item-meta > svg': {
             color: 'text.secondary'
@@ -218,7 +225,7 @@ const VerticalNavGroup = props => {
               borderRadius: 1,
               ...conditionalColors(),
               width: `calc(100% - ${theme.spacing(3.5 * 2)})`,
-              transition: 'padding-left .25s ease-in-out, padding-right .25s ease-in-out',
+              transition: 'padding-left .5s cubic-bezier(0.4, 0, 0.2, 1), padding-right .5s cubic-bezier(0.4, 0, 0.2, 1)',
               px: navCollapsed && !navHover ? (collapsedNavWidth - navigationBorderWidth - 22 - 28) / 8 : 4,
               '&.Mui-selected.Mui-focusVisible': {
                 backgroundColor: 'action.focus',
@@ -230,7 +237,7 @@ const VerticalNavGroup = props => {
           >
             <ListItemIcon
               sx={{
-                transition: 'margin .25s ease-in-out',
+                transition: 'margin .5s cubic-bezier(0.4, 0, 0.2, 1)',
                 ...(parent && navCollapsed && !navHover ? {} : { mr: 2 }),
                 ...(navCollapsed && !navHover ? { mr: 0 } : {}),
                 ...(parent && item.children ? { ml: 1.5, mr: 3.5 } : {})
@@ -252,7 +259,7 @@ const VerticalNavGroup = props => {
                   display: 'flex',
                   alignItems: 'center',
                   '& svg': {
-                    transition: 'transform .25s ease-in-out',
+                    transition: 'transform .5s cubic-bezier(0.4, 0, 0.2, 1)',
                     color: mode === 'semi-dark' ? `rgba(${theme.palette.customColors.dark}, 0.38)` : 'text.disabled',
                     ...(groupActive.includes(item.title) && {
                       transform: direction === 'ltr' ? 'rotate(90deg)' : 'rotate(-90deg)'
@@ -284,7 +291,7 @@ const VerticalNavGroup = props => {
               pl: 0,
               width: '100%',
               ...menuGroupCollapsedStyles,
-              transition: 'all 0.25s ease-in-out'
+              transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
             <VerticalNavItems

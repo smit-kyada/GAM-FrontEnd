@@ -22,7 +22,7 @@ import { Dialog, DialogActions, DialogContent, FormControlLabel, InputLabel, Men
 import Compressor from 'compressorjs'
 import toast from 'react-hot-toast'
 import { IS_USER_BANK_ACCOUNT } from 'src/graphql/query/bankDetail'
-import { useAuth } from 'src/hooks/useAuth'
+import { useAuth } from 'src/hooks/useAuth' 
 import Loader from '../loader/loader'
 
 const Header = styled(Box)(({ theme }) => ({

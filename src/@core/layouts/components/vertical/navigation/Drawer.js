@@ -4,7 +4,7 @@ import MuiSwipeableDrawer from '@mui/material/SwipeableDrawer'
 
 const SwipeableDrawer = styled(MuiSwipeableDrawer)({
   overflowX: 'hidden',
-  transition: 'width .25s ease-in-out',
+  transition: 'width .5s cubic-bezier(0.4, 0, 0.2, 1)',
   '& ul': {
     listStyle: 'none'
   },
@@ -16,7 +16,7 @@ const SwipeableDrawer = styled(MuiSwipeableDrawer)({
     left: 'unset',
     right: 'unset',
     overflowX: 'hidden',
-    transition: 'width .25s ease-in-out, box-shadow .25s ease-in-out'
+    transition: 'width .5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow .5s cubic-bezier(0.4, 0, 0.2, 1)'
   }
 })
 
@@ -44,9 +44,9 @@ const Drawer = props => {
   let flag = true
 
   const drawerColors = () => {
-    if (mode === 'semi-dark') {
+    if (mode === 'dark' || mode === 'semi-dark') {
       return {
-        backgroundColor: 'customColors.darkPaperBg'
+        backgroundColor: '#111111'
       }
     } else
       return {
@@ -70,8 +70,8 @@ const Drawer = props => {
     onOpen: () => null,
     onClose: () => null,
     onMouseEnter: () => {
-      // Declared flag to resolve first time flicker issue while trying to collapse the menu
-      if (flag || navCollapsed) {
+      // Always allow hover expansion when collapsed
+      if (navCollapsed) {
         setNavHover(true)
         flag = false
       }
@@ -104,7 +104,11 @@ const Drawer = props => {
           ...drawerColors(),
           ...(!hidden && skin !== 'bordered' && { boxShadow: 6 }),
           width: navCollapsed && !navHover ? collapsedNavWidth : navWidth,
-          borderRight: navigationBorderWidth === 0 ? 0 : `${navigationBorderWidth}px solid ${theme.palette.divider}`,
+          borderRight: (mode === 'dark' || mode === 'semi-dark') 
+            ? `1px solid ${theme.palette.divider}` 
+            : (navigationBorderWidth === 0 ? 0 : `${navigationBorderWidth}px solid ${theme.palette.divider}`),
+          top: 0,
+          height: '100%',
           ...userNavMenuPaperStyle
         },
         ...navMenuProps?.PaperProps

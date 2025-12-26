@@ -13,21 +13,22 @@ const AppBar = styled(MuiAppBar)(({ theme }) => ({
   backgroundColor: 'transparent',
   color: theme.palette.text.primary,
   minHeight: theme.mixins.toolbar.minHeight,
-  [theme.breakpoints.up('sm')]: {
-    paddingLeft: theme.spacing(6),
-    paddingRight: theme.spacing(6)
-  },
-  [theme.breakpoints.down('sm')]: {
-    paddingLeft: theme.spacing(4),
-    paddingRight: theme.spacing(4)
-  }
+  width: '100%',
+  left: 0,
+  right: 0,
+  zIndex: theme.zIndex.drawer + 1, // Ensure it's above the sidebar
+  paddingLeft: 0,
+  paddingRight: 0
 }))
 
 const Toolbar = styled(MuiToolbar)(({ theme }) => ({
   width: '100%',
-  marginTop: theme.spacing(4),
+  marginTop: '0px',
   borderRadius: theme.shape.borderRadius,
-  padding: `${theme.spacing(0, 6)} !important`
+  padding: `${theme.spacing(0)} !important`,
+  paddingLeft: '14px !important',
+  paddingRight: '16px !important',
+  maxWidth: '100%'
 }))
 
 const LayoutAppBar = props => {
@@ -35,7 +36,7 @@ const LayoutAppBar = props => {
   const { settings, appBarProps, appBarContent: userAppBarContent } = props
 
   // ** Vars
-  const { skin, appBar, appBarBlur, contentWidth } = settings
+  const { skin, appBar, appBarBlur, contentWidth, mode } = settings
 
   const appBarBlurEffect = appBarBlur && {
     '&:after': {
@@ -77,15 +78,28 @@ const LayoutAppBar = props => {
     >
       <Toolbar
         className='navbar-content-container'
-        sx={{
-          ...(appBarBlur && { backdropFilter: 'blur(6px)' }),
-          minHeight: theme => `${theme.mixins.toolbar.minHeight}px !important`,
-          backgroundColor: theme => hexToRGBA(theme.palette.background.paper, appBarBlur ? 0.95 : 1),
-          ...(skin === 'bordered' ? { border: theme => `1px solid ${theme.palette.divider}` } : { boxShadow: 4 }),
-          ...(contentWidth === 'boxed' && {
-            '@media (min-width:1440px)': { maxWidth: theme => `calc(1440px - ${theme.spacing(6 * 2)})` }
+        sx={theme => ({
+          // Glass effect (glassmorphism)
+          ...(appBarBlur && { 
+            backdropFilter: 'blur(12px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(12px) saturate(180%)'
+          }),
+          minHeight: `${theme.mixins.toolbar.minHeight}px !important`,
+          // Enhanced transparency for glass effect
+          backgroundColor: appBarBlur 
+            ? (mode === 'dark' || mode === 'semi-dark' 
+                ? hexToRGBA(theme.palette.background.paper, 0.7)
+                : hexToRGBA(theme.palette.background.paper, 0.8))
+            : theme.palette.background.paper,
+          // Border: always show in dark mode, or if skin is bordered
+          ...((mode === 'dark' || mode === 'semi-dark' || skin === 'bordered') && {
+            border: `1px solid ${theme.palette.divider}`
+          }),
+          // Shadow only if not bordered and not dark mode
+          ...(skin !== 'bordered' && mode !== 'dark' && mode !== 'semi-dark' && { 
+            boxShadow: 4 
           })
-        }}
+        })}
       >
         {(userAppBarContent && userAppBarContent(props)) || null}
       </Toolbar>

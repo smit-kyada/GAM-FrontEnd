@@ -13,10 +13,10 @@ const Button = theme => {
         },
         contained: {
           boxShadow: theme.shadows[2],
-          padding: `${theme.spacing(1.75, 5)}`
-        },
-        outlined: {
-          padding: `${theme.spacing(1.5, 4.75)}`
+          padding: `${theme.spacing(1.75, 5)}`,
+          '&:hover': {
+            boxShadow: theme.shadows[4]
+          },
         },
         sizeSmall: {
           lineHeight: 1.53846,

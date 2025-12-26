@@ -29,24 +29,17 @@ const MenuNavLink = styled(ListItemButton)(({ theme }) => ({
   marginLeft: theme.spacing(3.5),
   marginRight: theme.spacing(3.5),
   borderRadius: theme.shape.borderRadius,
-  transition: 'padding-left .25s ease-in-out, padding-right .25s ease-in-out',
+  transition: 'padding-left .3s cubic-bezier(0.4, 0, 0.2, 1), padding-right .3s cubic-bezier(0.4, 0, 0.2, 1)',
   '&.active': {
     '&, &:hover': {
-      boxShadow: `0px 2px 6px ${hexToRGBA(theme.palette.primary.main, 0.48)}`,
-      background: `linear-gradient(72.47deg, ${
-        theme.direction === 'ltr' ? theme.palette.primary.main : hexToRGBA(theme.palette.primary.main, 0.7)
-      } 22.16%, ${
-        theme.direction === 'ltr' ? hexToRGBA(theme.palette.primary.main, 0.7) : theme.palette.primary.main
-      } 76.47%)`,
-      '&.Mui-focusVisible': {
-        background: `linear-gradient(72.47deg, ${theme.palette.primary.dark} 22.16%, ${hexToRGBA(
-          theme.palette.primary.dark,
-          0.7
-        )} 76.47%)`
-      }
+      backgroundColor: theme.palette.mode === 'dark' ? '#1F1F1F' : '#F1F1F1'
     },
-    '& .MuiTypography-root, & svg': {
-      color: `${theme.palette.common.white} !important`
+    '& .MuiTypography-root': {
+      color: `${theme.palette.text.primary} !important`,
+      fontWeight: 500
+    },
+    '& svg': {
+      color: `${theme.palette.primary.main} !important`
     }
   }
 }))
@@ -57,7 +50,7 @@ const MenuItemTextMetaWrapper = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   gap: theme.spacing(2),
   justifyContent: 'space-between',
-  transition: 'opacity .25s ease-in-out',
+  transition: 'opacity .3s cubic-bezier(0.4, 0, 0.2, 1)',
   ...(themeConfig.menuTextTruncate && { overflow: 'hidden' })
 }))
 
@@ -84,7 +77,7 @@ const VerticalNavLink = ({
     if (mode === 'semi-dark') {
       return {
         '&:hover': {
-          backgroundColor: `rgba(${theme.palette.customColors.dark}, 0.04)`
+          backgroundColor: '#1F1F1F'
         },
         '& .MuiTypography-root, & svg': {
           color: `rgba(${theme.palette.customColors.dark}, 0.6)`
@@ -92,6 +85,9 @@ const VerticalNavLink = ({
       }
     } else
       return {
+        '&:hover': {
+          backgroundColor: mode === 'dark' ? '#1F1F1F' : '#F1F1F1'
+        },
         '& .MuiTypography-root, & svg': {
           color: 'text.secondary'
         }
@@ -138,7 +134,7 @@ const VerticalNavLink = ({
         >
           <ListItemIcon
             sx={{
-              transition: 'margin .25s ease-in-out',
+              transition: 'margin .3s cubic-bezier(0.4, 0, 0.2, 1)',
               ...(navCollapsed && !navHover ? { mr: 0 } : { mr: 2 }),
               ...(parent ? { ml: 1.5, mr: 3.5 } : {}),
               '& svg': {

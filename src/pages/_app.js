@@ -60,6 +60,46 @@ import { useApollo } from 'src/graphql/apolloClient';
 
 const clientSideEmotionCache = createEmotionCache()
 
+// ** Suppress AbortError in console - these are expected when queries are cancelled
+if (typeof window !== 'undefined') {
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    const error = event.reason;
+    // Suppress AbortError and related abort errors
+    if (
+      error?.name === 'AbortError' ||
+      (error?.message && (
+        error.message.includes('aborted') ||
+        error.message.includes('signal is aborted') ||
+        error.message.includes('The user aborted a request')
+      ))
+    ) {
+      event.preventDefault(); // Prevent the error from being logged to console
+    }
+  });
+
+  // Handle synchronous errors (like those thrown during unsubscribe)
+  const originalError = window.onerror;
+  window.onerror = (message, source, lineno, colno, error) => {
+    // Suppress AbortError and related abort errors
+    if (
+      error?.name === 'AbortError' ||
+      (typeof message === 'string' && (
+        message.includes('aborted') ||
+        message.includes('signal is aborted') ||
+        message.includes('AbortError')
+      ))
+    ) {
+      return true; // Suppress the error
+    }
+    // Call original error handler if it exists
+    if (originalError) {
+      return originalError(message, source, lineno, colno, error);
+    }
+    return false;
+  };
+}
+
 // ** Pace Loader
 if (themeConfig.routingLoader) {
   Router.events.on('routeChangeStart', () => {

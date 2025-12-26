@@ -32,19 +32,20 @@ const MainContentWrapper = styled(Box)({
   flexGrow: 1,
   minWidth: 0,
   display: 'flex',
-  minHeight: '100vh',
+  // minHeight: '100vh',
   flexDirection: 'column'
+})
+
+const FullWidthLayoutWrapper = styled(Box)({
+  display: 'flex',
+  flexDirection: 'column',
+  // minHeight: '100vh',
+  width: '100%'
 })
 
 const ContentWrapper = styled('main')(({ theme }) => ({
   flexGrow: 1,
-  width: '100%',
-  padding: theme.spacing(6),
-  transition: 'padding .25s ease-in-out',
-  [theme.breakpoints.down('sm')]: {
-    paddingLeft: theme.spacing(4),
-    paddingRight: theme.spacing(4)
-  }
+  width: '100%'
 }))
 
 const VerticalLayout = props => {
@@ -80,68 +81,70 @@ const VerticalLayout = props => {
 
   return (
     <>
-      <VerticalLayoutWrapper className='layout-wrapper'>
-        {/* Navigation Menu */}
-        {navHidden && !(navHidden && settings.lastLayout === 'horizontal') ? null : (
-          <Navigation
-            navWidth={navWidth}
-            navVisible={navVisible}
-            setNavVisible={setNavVisible}
-            collapsedNavWidth={collapsedNavWidth}
-            toggleNavVisibility={toggleNavVisibility}
-            navigationBorderWidth={navigationBorderWidth}
-            navMenuContent={verticalLayoutProps.navMenu.content}
-            navMenuBranding={verticalLayoutProps.navMenu.branding}
-            menuLockedIcon={verticalLayoutProps.navMenu.lockedIcon}
-            verticalNavItems={verticalLayoutProps.navMenu.navItems}
-            navMenuProps={verticalLayoutProps.navMenu.componentProps}
-            menuUnlockedIcon={verticalLayoutProps.navMenu.unlockedIcon}
-            afterNavMenuContent={verticalLayoutProps.navMenu.afterContent}
-            beforeNavMenuContent={verticalLayoutProps.navMenu.beforeContent}
-            {...props}
-          />
-        )}
-        <MainContentWrapper
-          className='layout-content-wrapper'
-          sx={{ ...(contentHeightFixed && { maxHeight: '100vh' }) }}
-        >
-          {/* AppBar Component */}
-          <AppBar
-            toggleNavVisibility={toggleNavVisibility}
-            appBarContent={verticalLayoutProps.appBar?.content}
-            appBarProps={verticalLayoutProps.appBar?.componentProps}
-            {...props}
-          />
-          {data?.map((item, index) => {
-            return (<Alert severity={item?.color} sx={{ mr: 5, ml: 5, mb: 1, mt: 1.5 }} key={'iasd' + index}>
-              {item?.title}
-            </Alert>
-            )
-          })}
-
-
-          {/* Content */}
-          <ContentWrapper
-            className='layout-page-content'
-            sx={{
-              ...(contentHeightFixed && {
-                overflow: 'hidden',
-                '& > :first-of-type': { height: '100%' }
-              }),
-              ...(contentWidth === 'boxed' && {
-                mx: 'auto',
-                '@media (min-width:1440px)': { maxWidth: 1440 },
-                '@media (min-width:1200px)': { maxWidth: '100%' }
-              })
-            }}
+      <FullWidthLayoutWrapper>
+        {/* AppBar Component - Full Width Above Everything */}
+        <AppBar
+          toggleNavVisibility={toggleNavVisibility}
+          appBarContent={verticalLayoutProps.appBar?.content}
+          appBarProps={verticalLayoutProps.appBar?.componentProps}
+          {...props}
+        />
+        
+        <VerticalLayoutWrapper className='layout-wrapper'>
+          {/* Navigation Menu */}
+          {navHidden && !(navHidden && settings.lastLayout === 'horizontal') ? null : (
+            <Navigation
+              navWidth={navWidth}
+              navVisible={navVisible}
+              setNavVisible={setNavVisible}
+              collapsedNavWidth={collapsedNavWidth}
+              toggleNavVisibility={toggleNavVisibility}
+              navigationBorderWidth={navigationBorderWidth}
+              navMenuContent={verticalLayoutProps.navMenu.content}
+              navMenuBranding={verticalLayoutProps.navMenu.branding}
+              menuLockedIcon={verticalLayoutProps.navMenu.lockedIcon}
+              verticalNavItems={verticalLayoutProps.navMenu.navItems}
+              navMenuProps={verticalLayoutProps.navMenu.componentProps}
+              menuUnlockedIcon={verticalLayoutProps.navMenu.unlockedIcon}
+              afterNavMenuContent={verticalLayoutProps.navMenu.afterContent}
+              beforeNavMenuContent={verticalLayoutProps.navMenu.beforeContent}
+              {...props}
+            />
+          )}
+          <MainContentWrapper
+            className='layout-content-wrapper'
+            sx={{ ...(contentHeightFixed && { maxHeight: '100vh' }) }}
           >
-            {children}
-          </ContentWrapper>
+            {data?.map((item, index) => {
+              return (<Alert severity={item?.color} sx={{ mr: 5, ml: 5, mb: 1, mt: 1.5 }} key={'iasd' + index}>
+                {item?.title}
+              </Alert>
+              )
+            })}
 
-          {/* Footer Component */}
-          <Footer footerStyles={footerProps?.sx} footerContent={footerProps?.content} {...props} />
-        </MainContentWrapper>
-      </VerticalLayoutWrapper>
+            {/* Content */}
+            <ContentWrapper
+              className='layout-page-content'
+              sx={{
+                ...(contentHeightFixed && {
+                  overflow: 'hidden',
+                  '& > :first-of-type': { height: '100%' }
+                }),
+                ...(contentWidth === 'boxed' && {
+                  mx: 'auto',
+                  '@media (min-width:1440px)': { maxWidth: 1440 },
+                  '@media (min-width:1200px)': { maxWidth: '100%' }
+                })
+              }}
+            >
+              {children}
+            </ContentWrapper>
+
+            {/* Footer Component */}
+            <Footer footerStyles={footerProps?.sx} footerContent={footerProps?.content} {...props} />
+          </MainContentWrapper>
+        </VerticalLayoutWrapper>
+      </FullWidthLayoutWrapper>
 
       {/* Customizer */}
       {disableCustomizer || hidden ? null : <Customizer />}

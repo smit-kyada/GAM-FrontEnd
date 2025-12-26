@@ -19,7 +19,7 @@ const ListSubheader = styled(props => <MuiListSubheader component='li' {...props
   paddingTop: theme.spacing(1.5),
   backgroundColor: 'transparent',
   paddingBottom: theme.spacing(1.5),
-  transition: 'padding-left .25s ease-in-out'
+  transition: 'padding-left .5s cubic-bezier(0.4, 0, 0.2, 1)'
 }))
 
 const TypographyHeaderText = styled(Typography)({

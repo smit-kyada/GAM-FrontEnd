@@ -1,9 +1,3 @@
-/**
- * Config
- * -------------------------------------------------------------------------------------
- * ! IMPORTANT: Make sure you clear the browser local storage in order to see the config changes in the template.
- * ! To clear local storage, you may refer https://www.leadshook.com/help/how-to-clear-local-storage-in-google-chrome-browser/.
- */
 const themeConfig = {
   // ** Layout Configs
   templateName: 'Vasuki' /* App Name */,
@@ -20,8 +14,8 @@ const themeConfig = {
   menuTextTruncate: true /* true | false */,
   navSubItemIcon: 'tabler:circle' /* Icon */,
   verticalNavToggleType: 'accordion' /* accordion | collapse /*! Note: This is for Vertical navigation menu only */,
-  navCollapsed: false /* true | false /*! Note: This is for Vertical navigation menu only */,
-  navigationSize: 260 /* Number in px(Pixels) /*! Note: This is for Vertical navigation menu only */,
+  navCollapsed: true /* true | false /*! Note: This is for Vertical navigation menu only */,
+  navigationSize: 250 /* Number in px(Pixels) /*! Note: This is for Vertical navigation menu only */,
   collapsedNavigationSize: 82 /* Number in px(Pixels) /*! Note: This is for Vertical navigation menu only */,
   afterVerticalNavMenuContentPosition: 'fixed' /* fixed | static */,
   beforeVerticalNavMenuContentPosition: 'fixed' /* fixed | static */,

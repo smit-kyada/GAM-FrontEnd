@@ -50,13 +50,7 @@ const Toolbar = styled(MuiToolbar)(({ theme }) => ({
 
 const ContentWrapper = styled('main')(({ theme }) => ({
   flexGrow: 1,
-  width: '100%',
-  padding: theme.spacing(6),
-  transition: 'padding .25s ease-in-out',
-  [theme.breakpoints.down('sm')]: {
-    paddingLeft: theme.spacing(4),
-    paddingRight: theme.spacing(4)
-  }
+  width: '100%'
 }))
 
 const HorizontalLayout = props => {

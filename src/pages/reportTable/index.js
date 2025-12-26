@@ -1,9 +1,9 @@
 import { useQuery, useMutation } from '@apollo/client'
-import { Box, Button, Typography, Select, MenuItem, FormControl, TextField, InputAdornment, IconButton, Popover, List, ListItem, ListItemButton, ListItemText } from '@mui/material'
+import { Box, Button, Typography, Select, MenuItem, FormControl, TextField, InputAdornment, IconButton, Popover, List, ListItem, ListItemButton, ListItemText, Tooltip, Dialog, DialogTitle, DialogContent, Checkbox, Menu } from '@mui/material'
 import Card from '@mui/material/Card'
 import Divider from '@mui/material/Divider'
 import Grid from '@mui/material/Grid'
-import { DataGrid, GridFooterContainer, GridPagination } from '@mui/x-data-grid'
+import { DataGrid, GridFooterContainer } from '@mui/x-data-grid'
 import { useEffect, useState, useCallback, useMemo, useRef, forwardRef } from 'react'
 import Moment from 'react-moment'
 import format from 'date-fns/format'
@@ -22,10 +22,24 @@ import { Icon } from '@iconify/react'
 import AdvancedMUIStyleFilter from 'src/components/customFilter'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, Legend as RechartsLegend } from 'recharts'
+import { AppsIcon, CloseIcon, DragIndicatorIcon, EditIcon, FilterAltIcon, InfoIcon, MoreVertIcon, PlusIcon, QuickReportIcon, SearchIcon } from 'src/components/icons/Icons'
 
 var siteTableRes
 
 function CustomFooter({ totals, filteredData, selectedAdExchange }) {
+  const theme = useTheme()
+
+  const footerCellSx = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: '52px',
+    padding: '12px 16px',
+    borderRight: `1px solid ${theme.palette.divider}`,
+    flexShrink: 0
+  }
+
   return (
     <>
       <GridFooterContainer
@@ -33,20 +47,29 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
           fontWeight: 'bold',
           overflow: 'hidden',
           width: '100%',
-          minWidth: 'max-content'
+          minWidth: 'max-content',
+          borderTop: `1px solid ${theme.palette.divider} !important`,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          backgroundColor: theme?.palette?.mode === 'dark' ? '#111111' : '#FFFFFF'
         }}
       >
         <Box
           sx={{
             display: 'flex',
             width: '100%',
-            minWidth: 'max-content' // Match the table content width
+            minWidth: 'max-content'
           }}
         >
-          <Box sx={{ minWidth: 250, flexShrink: 0 }}>
+          <Box
+            sx={{
+              ...footerCellSx,
+              minWidth: 250,
+              // borderLeft: `1px solid ${theme.palette.divider}`
+            }}
+          >
             <Typography
               noWrap
-              sx={{ color: 'text.secondary', fontSize: '16px', paddingLeft: '20px' }}
+              sx={{ color: 'text.secondary', fontSize: '16px' }}
             >
               TOTAL
             </Typography>
@@ -55,22 +78,22 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
           {/* Country column (if enabled) */}
 
           {filteredData?.selectedCountries?.length > 0 && filteredData?.byCountry && (
-            <Box sx={{ minWidth: 180, px: 4, flexShrink: 0 }}>
+            <Box sx={{ ...footerCellSx, minWidth: 180 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byHours && (
-            <Box sx={{ minWidth: 200, px: 4, flexShrink: 0 }}>
+            <Box sx={{ ...footerCellSx, minWidth: 200 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byAdUnit && (
-            <Box sx={{ minWidth: 300, px: 4, flexShrink: 0 }}>
+            <Box sx={{ ...footerCellSx, minWidth: 300 }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
           {filteredData?.byDated && (
-            <Box sx={{ minWidth: 125, px: 4, flexShrink: 0 }}>
+            <Box sx={{ ...footerCellSx, minWidth: 125, borderRight: `none` }}>
               <Typography noWrap>—</Typography>
             </Box>
           )}
@@ -108,25 +131,25 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
               },
               {
                 name: 'Clicks',
-                minWidth: 100,
+                minWidth: 120,
                 value: totals?.clicks ?? 0,
                 format: (val) => val?.toLocaleString() || '0'
               },
               {
                 name: 'Match Rate',
-                minWidth: 100,
+                minWidth: 120,
                 value: totals?.matchRate ?? 0,
                 format: (val) => `${(val || 0).toFixed(2)}%`
               },
               {
                 name: 'Cost Per Click',
-                minWidth: 120,
+                minWidth: 170,
                 value: totals?.costPerClick ?? 0,
                 format: (val) => `US$${(val || 0).toFixed(2)}`
               },
               {
                 name: 'Total Requests',
-                minWidth: 130,
+                minWidth: 170,
                 value: totals?.totalRequests ?? 0,
                 format: (val) => val
               }
@@ -143,12 +166,21 @@ function CustomFooter({ totals, filteredData, selectedAdExchange }) {
             }
 
             return getAdExchangeFooterColumns().map((column, index) => (
-              <Box key={index} sx={{ minWidth: column.minWidth, textAlign: 'right', px: 4, flexShrink: 0 }}>
-                <Typography noWrap sx={{ fontWeight: 'bold' }}>{column.format(column.value)}</Typography>
+              <Box
+                key={index}
+                sx={{
+                  ...footerCellSx,
+                  minWidth: column.minWidth,
+                  justifyContent: 'flex-end'
+                }}
+              >
+                <Typography noWrap sx={{ fontWeight: 'bold', width: '100%', textAlign: 'right' }}>
+                  {column.format(column.value)}
+                </Typography>
               </Box>
             ))
           })()}
-          <Box sx={{ minWidth: 100, px: 4, flexShrink: 0 }}>
+          <Box sx={{ ...footerCellSx, minWidth: 100, borderRight: `none !important` }}>
             <Typography noWrap>—</Typography>
           </Box>
         </Box>
@@ -197,6 +229,10 @@ const SiteTable = () => {
   const [appliedFiltersText, setAppliedFiltersText] = useState([]);
 
   const [open, setOpen] = useState(false);
+  const [metricsModalOpen, setMetricsModalOpen] = useState(false);
+  const [metricsSearchText, setMetricsSearchText] = useState('');
+  const [tempSelectedMetrics, setTempSelectedMetrics] = useState([]);
+  const [draggedIndex, setDraggedIndex] = useState(null);
 
   // Ad Exchange metric selection state - now synced with appliedSelections
   // const [selectedMetrics, setSelectedMetrics] = useState(['Clicks', 'Impressions', 'Page views', 'Impression RPM']);
@@ -233,6 +269,31 @@ const SiteTable = () => {
   const [countrySelectionSearchText, setCountrySelectionSearchText] = useState('');
   const [countrySelectionAnchorEl, setCountrySelectionAnchorEl] = useState(null);
 
+  // Header menu state
+  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] = useState(null);
+  const headerMenuOpen = Boolean(headerMenuAnchorEl);
+
+  // Sidebar state
+  const [reportSearchText, setReportSearchText] = useState('');
+  const [selectedReportId, setSelectedReportId] = useState('top-pages');
+  const [reportMenuAnchorEl, setReportMenuAnchorEl] = useState(null);
+  const reportMenuOpen = Boolean(reportMenuAnchorEl);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Report list data
+  const reportsList = [
+    { id: 'top-pages', title: 'Top pages', description: 'Earnings for your popular pages', icon: 'grid', isUnsaved: true },
+    { id: 'entire-account-day', title: 'Entire account by day', description: 'Estimated earnings by Date', icon: 'lightning' },
+    { id: 'demo', title: 'demo', description: 'Clicks by Platform and Conte...', icon: 'lightning' },
+    // { id: 'sites', title: 'Sites', description: 'Performance of each site', icon: 'lightning' },
+    // { id: 'content-platform', title: 'Content platform', description: 'Estimated earnings by Platfo...', icon: 'lightning' },
+    // { id: 'countries', title: 'Countries', description: 'How ads perform by country', icon: 'lightning' },
+    // { id: 'ad-units', title: 'Ad units', description: 'Estimated earnings by Ad unit', icon: 'lightning' },
+    // { id: 'platforms', title: 'Platforms', description: 'Estimated earnings by Platfo...', icon: 'lightning' },
+    // { id: 'entire-account-week', title: 'Entire account by w...', description: 'Estimated earnings by Week', icon: 'lightning' },
+    // { id: 'entire-account-month', title: 'Entire account by m...', description: 'Estimated earnings by Month', icon: 'lightning' },
+  ];
+
   // Applied filters state to track when to make API calls
   const [appliedFilters, setAppliedFilters] = useState({
     startDate: today,
@@ -253,10 +314,80 @@ const SiteTable = () => {
   const { direction } = theme
   const popperPlacement = direction === 'ltr' ? 'bottom-start' : 'bottom-end'
 
+  // Breakdown chip colors - reusable variables
+  const breakdownChipColors = {
+    backgroundColor: theme.palette.mode === 'light' ? '#E8F0FE' : 'rgba(26, 115, 232, 0.15)',
+    textColor: theme.palette.mode === 'light' ? '#1A73E8' : '#8AB4F8',
+    hoverBackgroundColor: theme.palette.mode === 'light' ? 'rgba(26, 115, 232, 0.1)' : 'rgba(138, 180, 248, 0.2)'
+  }
+
+  // Custom Tooltip Component for Recharts with theme support
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <Box
+          sx={{
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+            border: `1px solid ${theme.palette.divider}`,
+            borderRadius: '10px',
+            padding: theme.spacing(1.5),
+            boxShadow: theme.shadows[3]
+          }}
+        >
+          <Typography variant='body2' sx={{ fontWeight: 600, mb: 1, color: theme.palette.text.primary }}>
+            {label}
+          </Typography>
+          {payload.map((entry, index) => (
+            <Typography
+              key={index}
+              component="div"
+              variant='body2'
+              sx={{
+                color: theme.palette.text.primary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
+            >
+              <Box
+                sx={{
+                  width: 12,
+                  height: 12,
+                  backgroundColor: entry.color,
+                  borderRadius: '2px'
+                }}
+              />
+              {`${entry.name}: ${entry.value?.toLocaleString()}`}
+            </Typography>
+          ))}
+        </Box>
+      )
+    }
+    return null
+  }
+
   // GraphQL mutations for CSV download
   const [downloadHoursWiseCSV] = useMutation(DOWNLOAD_HOURS_WISE_CSV)
   const [downloadAdUnitReportCSV] = useMutation(DOWNLOAD_AD_UNIT_REPORT_CSV)
   const [downloadDailyReportCSV] = useMutation(DOWNLOAD_DAILY_REPORT_CSV)
+
+  // Helper function to check if error is an abort error
+  const isAbortError = (error) => {
+    if (!error) return false
+    return (
+      error.name === 'AbortError' ||
+      (error.message && (
+        error.message.includes('aborted') ||
+        error.message.includes('signal is aborted') ||
+        error.message.includes('The user aborted a request')
+      )) ||
+      (error.networkError && (
+        error.networkError.name === 'AbortError' ||
+        (error.networkError.message && error.networkError.message.includes('aborted'))
+      ))
+    )
+  }
 
   // Graphql query for report tables - conditionally calls based on byHours and byAdUnit flags
   const {
@@ -276,7 +407,13 @@ const SiteTable = () => {
     },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
-    skip: appliedFilters.byAdUnit || appliedFilters.byHours // Skip when byAdUnit OR byHours is true
+    skip: appliedFilters.byAdUnit || appliedFilters.byHours, // Skip when byAdUnit OR byHours is true
+    onError: (error) => {
+      // Suppress abort errors - they're expected when queries are cancelled
+      if (!isAbortError(error)) {
+        console.error('GraphQL Error:', error)
+      }
+    }
   })
 
 
@@ -297,7 +434,13 @@ const SiteTable = () => {
     },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
-    skip: !appliedFilters.byAdUnit || appliedFilters.byHours // Skip when byAdUnit is false OR byHours is true
+    skip: !appliedFilters.byAdUnit || appliedFilters.byHours, // Skip when byAdUnit is false OR byHours is true
+    onError: (error) => {
+      // Suppress abort errors - they're expected when queries are cancelled
+      if (!isAbortError(error)) {
+        console.error('GraphQL Error:', error)
+      }
+    }
   })
 
   const {
@@ -315,7 +458,13 @@ const SiteTable = () => {
     },
     fetchPolicy: 'cache-and-network',
     notifyOnNetworkStatusChange: true,
-    skip: !appliedFilters.byHours // Skip when byHours is false
+    skip: !appliedFilters.byHours, // Skip when byHours is false
+    onError: (error) => {
+      // Suppress abort errors - they're expected when queries are cancelled
+      if (!isAbortError(error)) {
+        console.error('GraphQL Error:', error)
+      }
+    }
   })
 
   // Graphql query for sites with debounced search
@@ -330,7 +479,13 @@ const SiteTable = () => {
       limit: 100,
       search: siteSearchText
     },
-    fetchPolicy: 'cache-and-network'
+    fetchPolicy: 'cache-and-network',
+    onError: (error) => {
+      // Suppress abort errors - they're expected when queries are cancelled
+      if (!isAbortError(error)) {
+        console.error('GraphQL Error:', error)
+      }
+    }
   })
 
   // Set the appropriate refetch function based on byHours and byAdUnit flags
@@ -406,6 +561,31 @@ const SiteTable = () => {
       }
     }
   }, [siteDatas]) // Removed selectedSites.length dependency to prevent infinite loop
+
+  // Filter out abort errors from error states
+  useEffect(() => {
+    if (siteTableError && isAbortError(siteTableError)) {
+      // Abort errors are expected and can be ignored
+    }
+  }, [siteTableError])
+
+  useEffect(() => {
+    if (adunitTableError && isAbortError(adunitTableError)) {
+      // Abort errors are expected and can be ignored
+    }
+  }, [adunitTableError])
+
+  useEffect(() => {
+    if (hoursTableError && isAbortError(hoursTableError)) {
+      // Abort errors are expected and can be ignored
+    }
+  }, [hoursTableError])
+
+  useEffect(() => {
+    if (siteError && isAbortError(siteError)) {
+      // Abort errors are expected and can be ignored
+    }
+  }, [siteError])
 
   // Note: appliedFilters.selectedSites is now only updated when Apply button is clicked
   // This prevents automatic filtering when sites are just selected in the popover
@@ -658,6 +838,37 @@ const SiteTable = () => {
     setBreakdownsAnchorEl(null);
     setBreakdownsSearchText('');
   };
+
+  // Handle header menu
+  const handleHeaderMenuOpen = (event) => {
+    setHeaderMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleHeaderMenuClose = () => {
+    setHeaderMenuAnchorEl(null);
+  };
+
+  // Handle save button
+  const handleSave = () => {
+    // Add save functionality here
+    toast.success('Report saved successfully');
+  };
+
+  // Handle report menu
+  const handleReportMenuOpen = (event, reportId) => {
+    event.stopPropagation();
+    setReportMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleReportMenuClose = () => {
+    setReportMenuAnchorEl(null);
+  };
+
+  // Filter reports based on search
+  const filteredReports = reportsList.filter(report =>
+    report.title.toLowerCase().includes(reportSearchText.toLowerCase()) ||
+    report.description.toLowerCase().includes(reportSearchText.toLowerCase())
+  );
 
   // Breakdowns filter options
   const breakdownsOptions = [
@@ -1083,16 +1294,16 @@ const SiteTable = () => {
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              backgroundColor: 'grey.100',
+              backgroundColor: theme.palette.mode === 'light' ? 'grey.100' : 'grey.800',
               border: '1px solid',
-              borderColor: 'grey.300',
+              borderColor: theme.palette.divider,
               borderRadius: 1,
               px: 1,
               py: 0.25,
               fontSize: '12px',
               cursor: 'pointer',
               '&:hover': {
-                backgroundColor: 'grey.200'
+                backgroundColor: theme.palette.mode === 'light' ? 'grey.200' : 'grey.700'
               }
             }}
             onClick={(e) => {
@@ -1131,16 +1342,16 @@ const SiteTable = () => {
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              backgroundColor: 'grey.100',
+              backgroundColor: theme.palette.mode === 'light' ? 'grey.100' : 'grey.800',
               border: '1px solid',
-              borderColor: 'grey.300',
+              borderColor: theme.palette.divider,
               borderRadius: 1,
               px: 1,
               py: 0.25,
               fontSize: '12px',
               cursor: 'pointer',
               '&:hover': {
-                backgroundColor: 'grey.200'
+                backgroundColor: theme.palette.mode === 'light' ? 'grey.200' : 'grey.700'
               }
             }}
             onClick={(e) => {
@@ -1163,7 +1374,7 @@ const SiteTable = () => {
                 height: 14,
                 p: 0,
                 '&:hover': {
-                  backgroundColor: 'rgba(0,0,0,0.1)'
+                  backgroundColor: theme.palette.action.hover
                 }
               }}
             >
@@ -1532,7 +1743,7 @@ const SiteTable = () => {
           const filterSuffix = filterInfo.length > 0 ? `_${filterInfo.join('-')}` : ''
           const filename = `DailyReport_${currentDate}${filterSuffix}.csv`
 
-          link.download = filename
+          link.download = filename;
           document.body.appendChild(link)
           link.click()
           document.body.removeChild(link)
@@ -1692,9 +1903,10 @@ const SiteTable = () => {
       minWidth: 150,
       field: 'impressions',
       headerName: 'Impressions',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap align='right' sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           {row?.impressions}
         </Typography>
       )
@@ -1703,9 +1915,10 @@ const SiteTable = () => {
       minWidth: 130,
       field: 'ctr',
       headerName: 'CTR',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           {row?.ctr ? row.ctr.toFixed(2) : '0.00'}%
         </Typography>
       )
@@ -1714,9 +1927,10 @@ const SiteTable = () => {
       minWidth: 150,
       field: 'ecpm',
       headerName: 'ECPM',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           US${row?.ecpm ? row.ecpm.toFixed(2) : '0.00'}
         </Typography>
       )
@@ -1725,53 +1939,58 @@ const SiteTable = () => {
       minWidth: 150,
       field: 'revenue',
       headerName: 'Revenue',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           US${row?.revenue.toFixed(2)}
         </Typography>
       )
     },
     {
-      minWidth: 100,
+      minWidth: 120,
       field: 'clicks',
       headerName: 'Clicks',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           {row?.clicks}
         </Typography>
       )
     },
     {
-      minWidth: 100,
+      minWidth: 120,
       field: 'matchRate',
       headerName: 'Match Rate',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           {(row?.matchRate).toFixed(2)}%
         </Typography>
       )
     },
     {
-      minWidth: 120,
+      minWidth: 170,
       field: 'costPerClick',
       headerName: 'Cost Per Click',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           US${row?.costPerClick ? row.costPerClick.toFixed(2) : '0.00'}
         </Typography>
       )
     },
     {
-      minWidth: 130,
+      minWidth: 170,
       field: 'totalRequests',
       headerName: 'Total Requests',
-      align: 'right',
+      align: 'center',
+      headerAlign: 'center',
       renderCell: ({ row }) => (
-        <Typography noWrap sx={{ color: 'text.secondary', textTransform: 'capitalize' }}>
+        <Typography noWrap align='center' sx={{ color: 'text.secondary', width: '100%' }}>
           {row?.totalRequests || 0}
         </Typography>
       )
@@ -1825,9 +2044,11 @@ const SiteTable = () => {
           field: 'hour',
           headerName: 'Hour',
           renderCell: ({ row }) => (
-            <Typography noWrap sx={{ color: 'text.secondary' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>  
+              <Typography noWrap sx={{ color: 'text.secondary' }}>
               {row?.hour || '--'}
             </Typography>
+            </Box>
           )
         }
       ]
@@ -1893,99 +2114,22 @@ const SiteTable = () => {
 
   return (
     <>
-      <Grid container spacing={6.5}>
-        <Grid item xs={12}>
-          <Card>
-
-            {/* <Divider sx={{ m: '0 !important' }} /> */}
-
-            {/* <TableHeader
-              toggle={toggleAddUserDrawer}
-              startDate={startDate}
-              setStartDate={setStartDate}
-              endDate={endDate}
-              setEndDate={setEndDate}
-              siteTableRefetch={reportTableRefetch}
-              For='SiteTable'
-            /> */}
-
-            {/* <Divider sx={{ m: '0 !important' }} />
-
-            <Grid container spacing={3} alignItems='center' xs={12}>
-              <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
-                <Grid item>
-                  <Button
-                    onClick={() => setOpen(true)}
-                    variant='outlined'
-                    startIcon={<Icon icon='tabler:filter' />}
-                    size='small'
-                  >
-                    Add filter
-                  </Button>
-                </Grid>
-                <Grid item>
-                  <Button onClick={handleDownloadCSV} variant='contained' sx={{ '& svg': { mr: 2 } }}>
-                    <Icon fontSize='1.125rem' icon='tabler:download' />
-                    Download Excel
-                  </Button>
-                </Grid>
-
-                <Grid item xs>
-                  <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {appliedFiltersText.map(filter => (
-                      <Box
-                        key={filter.id}
-                        sx={{
-                          position: 'relative',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          backgroundColor: 'secondary.paper',
-                          border: '1px solid',
-                          borderColor: 'secondary.main',
-                          borderRadius: '16px',
-                          padding: '6px 12px 6px 12px',
-                          fontSize: '13px',
-                          color: 'secondary.light',
-                          maxWidth: '400px'
-                        }}
-                      >
-                        <Typography
-                          variant='body2'
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: '13px',
-                          }}
-                        >
-                          {filter.label}
-                        </Typography>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleRemoveFilter(filter.id)}
-                          sx={{
-                            width: 16,
-                            height: 16,
-                            marginLeft: '8px',
-                            padding: 0,
-                            '&:hover': {
-                              backgroundColor: 'rgba(0,0,0,0.1)'
-                            }
-                          }}
-                        >
-                          <Icon icon="tabler:x" sx={{ fontSize: '12px', color: 'text.secondary' }} />
-                        </IconButton>
-                      </Box>
-                    ))}
-                  </Box>
-                </Grid>
-              </Grid>
-            </Grid> */}
-
-            <Divider sx={{ m: '0 !important' }} />
-
+      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Main Content Area */}
+        <Box
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            // height: '100vh',
+            overflowY: 'auto',
+            overflowX: 'hidden'
+          }}>
+          <Card sx={{
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
             {/* Date Filter Bar */}
-            <Grid container spacing={3} alignItems='center' sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
+            <Grid container spacing={3} alignItems='center' sx={{ margin: '16px', width: 'calc(100% - 32px)', '& > .MuiGrid-item': { paddingTop: 0, paddingLeft: 0 } }}>
               <Grid item xs={12} sm={9}>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                   {[
@@ -2000,8 +2144,15 @@ const SiteTable = () => {
                     return (
                       <Button
                         key={option.value}
-                        variant={isSelected ? 'contained' : 'outlined'}
-                        startIcon={isSelected ? <Icon icon='tabler:check' /> : null}
+                        variant='text'
+                        startIcon={
+                          isSelected ? (
+                            <Icon 
+                              icon='tabler:check' 
+                              style={{ color: breakdownChipColors.textColor }}
+                            />
+                          ) : null
+                        }
                         endIcon={option.hasDropdown ? <Icon icon='tabler:chevron-down' /> : null}
                         size='small'
                         onClick={(event) => {
@@ -2014,17 +2165,23 @@ const SiteTable = () => {
                           minWidth: 'auto',
                           px: 2,
                           py: 1,
-                          borderRadius: 2,
+                          borderRadius: '8px',
                           textTransform: 'none',
                           fontWeight: isSelected ? 600 : 400,
-                          backgroundColor: isSelected ? theme.palette.primary.main : 'transparent',
-                          color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
-                          borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
-                          '&:hover': {
-                            backgroundColor: isSelected
-                              ? theme.palette.primary.dark
-                              : theme.palette.action.hover,
-                            borderColor: theme.palette.primary.main
+                          backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'transparent',
+                          color: isSelected ? breakdownChipColors.textColor : theme.palette.text.primary,
+                          border: isSelected ? 'none' : `1px solid ${theme.palette.divider}`,
+                          boxShadow: 'none',
+                          '&:hover:not(.Mui-disabled)': {
+                            backgroundColor: isSelected ? breakdownChipColors.backgroundColor : '#E7E8E8 !important',
+                            border: isSelected ? 'none' : `1px solid ${theme.palette.divider}`,
+                            boxShadow: isSelected ? '0 4px 6px rgba(0, 0, 0, 0.1)' : 'none'
+                          },
+                          '& .MuiButton-startIcon': {
+                            color: isSelected ? breakdownChipColors.textColor : 'inherit'
+                          },
+                          '& .MuiButton-endIcon': {
+                            color: 'inherit'
                           }
                         }}
                       >
@@ -2042,131 +2199,556 @@ const SiteTable = () => {
               </Grid>
             </Grid>
             <Divider sx={{ m: '0 !important' }} />
+            <Grid container spacing={0} sx={{ height: 'calc(100vh - 136px)', position: 'relative', overflow: 'hidden', display: 'flex', flexWrap: 'nowrap' }}>
+              <Grid 
+                item 
+                xs={sidebarOpen ? 12 : 0} 
+                sm={sidebarOpen ? 4 : 0} 
+                md={sidebarOpen ? 3 : 0} 
+                lg={sidebarOpen ? 2.5 : 0}
+                sx={{
+                  // borderRight: sidebarOpen ? `1px solid ${theme.palette.divider}` : 'none',
+                  height: '100%',
+                  overflowY: sidebarOpen ? 'auto' : 'hidden',
+                  overflowX: 'hidden',
+                  backgroundColor: theme.palette.mode === 'dark' ? '#1F1F1F' : '#FAFAFA',
+                  transition: 'all 0.3s ease-in-out',
+                  transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+                  opacity: sidebarOpen ? 1 : 0,
+                  visibility: sidebarOpen ? 'visible' : 'hidden',
+                  position: 'relative',
+                  zIndex: 1,
+                  minWidth: sidebarOpen ? { xs: '100%', sm: '200px', md: '240px', lg: '280px' } : 0,
+                  maxWidth: sidebarOpen ? { xs: '100%', sm: '25%', md: '25%', lg: '280px' } : 0,
+                      '&::-webkit-scrollbar': {
+                        width: '8px'
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        backgroundColor: 'transparent'
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                        borderRadius: '4px',
+                        '&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
+                        }
+                      }
+                    }}
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                      {/* Search Bar */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, borderBottom: `1px solid ${theme.palette.divider}`, p: 2 }}>
+                        <TextField
+                          size='small'
+                          placeholder="Search reports"
+                          value={reportSearchText}
+                          onChange={(e) => setReportSearchText(e.target.value)}
+                          sx={{
+                            flex: 1,
+                            boxShadow: 'none',
+                            '& .MuiOutlinedInput-root': {
+                              boxShadow: 'none',
+                              '& .MuiOutlinedInput-notchedOutline': {
+                                border: 'none',
+                                boxShadow: 'none'
+                              },
+                              '&:hover': {
+                                boxShadow: 'none',
+                              },
+                              '&:hover .MuiOutlinedInput-notchedOutline': {
+                                border: 'none',
+                                boxShadow: 'none'
+                              },
+                              '&.Mui-focused': {
+                                boxShadow: 'none',
+                              },
+                              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                                border: 'none',
+                                boxShadow: 'none'
+                              },
+                            }
+                          }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <SearchIcon width={24} height={24} fill="#3c4043" />
+                              </InputAdornment>
+                            )
+                          }}
+                        />
+                        <IconButton>
+                            <PlusIcon width={24} height={24} fill={`${theme.palette.mode === 'dark' ? '#FFFFFF' : '#3c4043'}`} />
+                        </IconButton>
+                      </Box>
 
-            {/* Breakdowns Section */}
-            <Grid container spacing={3} alignItems='center' xs={12}>
-              <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {/* Left side - Breakdowns */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Typography variant='body1' sx={{ fontWeight: 500, color: 'text.primary' }}>
-                        Breakdowns:
-                      </Typography>
+                      {/* Report List */}
+                      <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+                        {/* Unsaved Report */}
+                        {filteredReports.filter(r => r.isUnsaved).map((report) => (
+                          <Box
+                            key={report.id}
+                            onClick={() => setSelectedReportId(report.id)}
+                            sx={{
+                              position: 'relative',
+                              py:4,
+                              px:4,
+                              backgroundColor: selectedReportId === report.id 
+                                ? breakdownChipColors.backgroundColor 
+                                : 'transparent',
+                              cursor: 'pointer',
+                              borderBottom: `1px solid ${theme.palette.divider}`,
+                              '&:hover': {
+                                  backgroundColor: selectedReportId === report.id 
+                                    ? breakdownChipColors.backgroundColor 
+                                    : 'action.hover'
+                              }
+                            }}
+                              >
+                              {selectedReportId === report.id && (
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    zIndex: 1,
+                                    top: '-1px',
+                                    bottom: 0,
+                                    height: 'calc(100% + 2px)',
+                                    width: '6px',
+                                    backgroundColor: breakdownChipColors.textColor
+                                  }}
+                                />
+                              )}
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
+                                  <QuickReportIcon fill={selectedReportId === report.id ? breakdownChipColors.textColor : '#5F6368'} />
+                                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                                    <Typography 
+                                      variant='body2' 
+                                      sx={{ 
+                                        fontWeight: selectedReportId === report.id ? 600 : 400,
+                                        color: selectedReportId === report.id ? breakdownChipColors.textColor : 'text.primary',
+                                        mb: 0.5
+                                      }}
+                                    >
+                                      {report.title}
+                                    </Typography>
+                                    <Typography 
+                                      variant='caption' 
+                                      sx={{ 
+                                        color: selectedReportId === report.id ? breakdownChipColors.textColor : 'text.secondary',
+                                        fontSize: '0.75rem',
+                                        display: 'block',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        width: '150px'
+                                      }}
+                                    >
+                                      {report.description}
+                                    </Typography>
+                                </Box>
+                                </Box>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <IconButton
+                                    size='small'
+                                    onClick={(e) => handleReportMenuOpen(e, report.id)}
+                                    sx={{
+                                      p: 3,
+                                      color: selectedReportId === report.id ? breakdownChipColors.textColor : 'text.secondary',
+                                      '&:hover': {
+                                        backgroundColor: 'action.hover'
+                                      }
+                                    }}
+                                  >
+                                    <MoreVertIcon width={24} height={24} fill={selectedReportId === report.id ? breakdownChipColors.textColor : '#5F6368'} />
+                                  </IconButton>
+                                </Box>
+                              </Box>
+                          </Box>
+                        ))}
 
-                      {/* Show selected breakdowns */}
-                      {selectedBreakdowns.length > 0 && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                          {selectedBreakdowns.map((breakdown, index) => (
-                            <Box
-                              key={breakdown}
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 0.5,
-                                backgroundColor: 'background.paper',
-                                border: '1px solid',
-                                borderColor: 'divider',
-                                borderRadius: 2,
-                                px: 1.5,
-                                py: 0.5,
-                                fontSize: '14px'
-                              }}
-                            >
-                              <Typography variant="body2" sx={{ color: 'text.primary' }}>
-                                {breakdown}
-                              </Typography>
+                        {/* Saved Reports */}
+                        {filteredReports.filter(r => !r.isUnsaved).map((report) => (
+                        <Box
+                            key={report.id}
+                            onClick={() => setSelectedReportId(report.id)}
+                            sx={{
+                              position: 'relative',
+                              p: 4,
+                              backgroundColor: selectedReportId === report.id 
+                                ? breakdownChipColors.backgroundColor 
+                                : 'transparent',
+                              cursor: 'pointer',
+                              borderBottom: `1px solid ${theme.palette.divider}`,
+                              '&:hover': {
+                                backgroundColor: selectedReportId === report.id 
+                                  ? breakdownChipColors.backgroundColor 
+                                  : 'action.hover'
+                              }
+                            }}
+                          >
+                            {selectedReportId === report.id && (
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  top: '-1px',
+                                  height: 'calc(100% + 2px)',
+                                  width: '6px',
+                                  backgroundColor: breakdownChipColors.textColor
+                                }}
+                              />
+                            )}
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
+                              <QuickReportIcon fill={selectedReportId === report.id ? breakdownChipColors.textColor : '#5F6368'} />
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography 
+                                    variant='body2' 
+                                    sx={{ 
+                                      fontWeight: selectedReportId === report.id ? 600 : 400,
+                                      color: selectedReportId === report.id ? breakdownChipColors.textColor : 'text.primary',
+                                      mb: 0.5
+                                    }}
+                                  >
+                                    {report.title}
+                                  </Typography>
+                                  <Typography 
+                                    variant='caption' 
+                                    sx={{ 
+                                      color: selectedReportId === report.id ? breakdownChipColors.textColor : 'text.secondary',
+                                      fontSize: '0.75rem',
+                                      display: 'block',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      width: '150px'
+                                    }}
+                                  >
+                                    {report.description}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                          <IconButton
+                                size='small'
+                                onClick={(e) => handleReportMenuOpen(e, report.id)}
+                                sx={{
+                                  p: 3,
+                                  color: selectedReportId === report.id ? breakdownChipColors.textColor : '#5F6368',
+                                  '&:hover': {
+                                        backgroundColor: 'action.hover'
+                                  }
+                                }}
+                          >
+                                <MoreVertIcon width={24} height={24} fill={selectedReportId === report.id ? breakdownChipColors.textColor : '#5F6368'} />
+                          </IconButton>
+                        </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+              </Grid>
+              <Grid item 
+                xs={12} 
+                sm={sidebarOpen ? 8 : 12} 
+                md={sidebarOpen ? 9 : 12} 
+                lg={sidebarOpen ? 9 : 12} 
+                sx={{ 
+                  flex: '1 1 0% !important',
+                  flexGrow: '1 !important',
+                  flexShrink: '1 !important',
+                  flexBasis: '0% !important',
+                  minWidth: 0, 
+                  width: 'auto !important',
+                  maxWidth: 'none !important',
+                  transition: 'all 0.3s ease-in-out', 
+                  borderLeft: sidebarOpen ? `1px solid ${theme.palette.divider}` : 'none',  
+                  height: '100%',
+                  overflowY: 'auto',
+                  overflowX: 'hidden',
+                  // backgroundColor: '#F8F9FA',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  // Override Material-UI Grid breakpoint styles
+                  '&.MuiGrid-item': {
+                    flexGrow: '1 !important',
+                    flexBasis: '0% !important',
+                    maxWidth: 'none !important',
+                    width: 'auto !important'
+                  },
+                  // Override at all breakpoints
+                  [theme.breakpoints.up('xs')]: {
+                    flexBasis: '0% !important',
+                    maxWidth: 'none !important',
+                    flexGrow: '1 !important',
+                    width: 'auto !important'
+                  },
+                  [theme.breakpoints.up('sm')]: {
+                    flexBasis: '0% !important',
+                    maxWidth: 'none !important',
+                    flexGrow: '1 !important',
+                    width: 'auto !important'
+                  },
+                  [theme.breakpoints.up('md')]: {
+                    flexBasis: '0% !important',
+                    maxWidth: 'none !important',
+                    flexGrow: '1 !important',
+                    width: 'auto !important'
+                  },
+                  [theme.breakpoints.up('lg')]: {
+                    flexBasis: '0% !important',
+                    maxWidth: 'none !important',
+                    flexGrow: '1 !important',
+                    width: 'auto !important'
+                  },
+                  [theme.breakpoints.up('xl')]: {
+                    flexBasis: '0% !important',
+                    maxWidth: 'none !important',
+                    flexGrow: '1 !important',
+                    width: 'auto !important'
+                  }
+                }}>
+              {/* Report Header Section */}
+              <Grid container spacing={3} alignItems='center' sx={{ margin: 0, '& > .MuiGrid-item': { paddingTop: 0, paddingLeft: 0 } }}>
+                <Grid container alignItems='center' spacing={2} sx={{ margin: 0, width: 'calc(100% - 32px)', '& > .MuiGrid-item': { paddingTop: 0, paddingLeft: 0 }}}>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 2.5 }}>
+                      {/* Left side - Title with Grid Icon */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <IconButton
+                          onClick={() => setSidebarOpen(!sidebarOpen)}
+                          sx={{
+                            color: 'text.primary',
+                            p: 1.5,
+                            '&:hover': {
+                              backgroundColor: 'action.hover'
+                            }
+                          }}
+                        >
+                          <AppsIcon width={24} height={24} fill="#3c4043" />
+                        </IconButton>
+                        <Typography variant='h6' sx={{ fontWeight: 500, color: 'text.primary' }}>
+                          Top pages
+                        </Typography>
+                      </Box>
+
+                      {/* Right side - Save Button and Menu */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Button
+                          variant='outlined'
+                          onClick={handleSave}
+                          sx={{
+                            textTransform: 'none',
+                            fontWeight: 400,
+                            borderColor: 'divider',
+                            color: 'text.primary',
+                            backgroundColor: 'background.paper',
+                            borderRadius: '8px',
+                            px: 2,
+                            py: 0.75,
+                            '&:hover': {
+                              borderColor: 'divider',
+                              backgroundColor: 'action.hover'
+                            }
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <IconButton
+                          onClick={handleHeaderMenuOpen}
+                          sx={{
+                            color: 'text.primary',
+                            p: 1,
+                            '&:hover': {
+                              backgroundColor: 'action.hover'
+                            }
+                          }}
+                        >
+                          <Icon icon='tabler:dots-vertical' sx={{ fontSize: '1.25rem' }} />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ m: '0 !important' }} />
+
+              {/* Breakdowns Section */}
+              <Grid container spacing={3} alignItems='center' sx={{ margin: 0, marginTop: 0, marginLeft: 0, width: '100%', '& > .MuiGrid-item': { paddingTop: 0, paddingLeft: 0 } }}>
+                <Grid container alignItems='center' spacing={2} sx={{ margin: 0, marginTop: 0, marginLeft: 0, width: '100%', '& > .MuiGrid-item': { paddingTop: 0, paddingLeft: 0 } }}>
+                  <Grid item xs={12}> 
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                      {/* Left side - Breakdowns */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '50%', px: 4, py: 3, flexWrap: 'wrap' }}>
+                        <Typography variant='body1' sx={{ fontWeight: 500, color: 'text.primary' }}>
+                          Breakdowns:
+                        </Typography>
+
+                        {/* Show all selected breakdowns as chips */}
+                        {selectedBreakdowns.length > 0 && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            {selectedBreakdowns.map((breakdown, index) => (
+                              <Box
+                                key={breakdown}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            backgroundColor: breakdownChipColors.backgroundColor,
+                            borderRadius: '8px',
+                            px: 1.5,
+                            py: 0.5,
+                            fontSize: '14px'
+                          }}
+                        >
+                          <Icon 
+                            icon="tabler:check" 
+                            style={{ 
+                              fontSize: '16px', 
+                              color: breakdownChipColors.textColor
+                            }} 
+                          />
+                                <Typography variant="body2" sx={{ color: breakdownChipColors.textColor }}>
+                                  {breakdown}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                                      onClick={() => handleBreakdownOptionSelect(breakdown)}
+                                      disabled={breakdown === 'Date' && selectedBreakdowns.length <= 1}
+                            sx={{
+                              width: 16,
+                              height: 16,
+                              p: 0,
+                              ml: 0.5,
+                              '&:hover': {
+                                backgroundColor: breakdownChipColors.hoverBackgroundColor
+                                  },
+                                        '&.Mui-disabled': {
+                                          opacity: 0.5
+                              }
+                            }}
+                          >
+                            <Icon icon="tabler:x" sx={{ fontSize: '12px', color: breakdownChipColors.textColor }} />
+                          </IconButton>
+                                  </Box>
+                                ))}
+                        </Box>
+                      )}
+
+                        <Button
+                          variant='text'
+                          startIcon={<Icon icon='tabler:plus' />}
+                          onClick={handleBreakdownsDropdownOpen}
+                          sx={{
+                            color: 'primary.main',
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            minWidth: 'auto',
+                            px: 1,
+                            '&:hover': {
+                              backgroundColor: 'transparent'
+                            },
+                            '& .MuiButton-startIcon': {
+                              marginRight: 0.5
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </Box>
+
+                      {/* Vertical Divider */}
+                      <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
+
+                      {/* Right side - Search/Filter */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '50%', pl: 2 }}>
+                        {/* Filter Icon Button */}
+                        <IconButton
+                          onClick={(e) => {
+                            setSearchFilterAnchorEl(e.currentTarget);
+                            handleSearchFilterDropdownOpen(e);
+                          }}
+                          sx={{
+                            color: 'text.secondary',
+                            p: 1,
+                            '&:hover': {
+                              backgroundColor: 'action.hover'
+                            }
+                          }}
+                        >
+                          <FilterAltIcon fill="#5F6368" width={24} height={24} />
+                        </IconButton>
+
+                      {/* Search Input Field */}
+                      <TextField
+                        ref={searchFieldRef}
+                        onClick={handleSearchFilterDropdownOpen}
+                        size='small'
+                        placeholder="Search or filter your data"
+                        value={searchFilterText}
+                        onChange={(e) => setSearchFilterText(e.target.value)}
+                        sx={{
+                          flex: 1,
+                          minWidth: 200,
+                          '& .MuiOutlinedInput-root': {
+                            backgroundColor: 'background.paper',
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            boxShadow: 'none',
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              border: 'none'
+                            },
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              border: 'none'
+                            },
+                            '&:hover': {
+                              boxShadow: 'none'
+                            },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              border: 'none'
+                            },
+                            '&.Mui-focused': {
+                              boxShadow: 'none'
+                            }
+                          }
+                        }}
+                        InputProps={{
+                          endAdornment: searchFilterText && (
+                            <InputAdornment position='end'>
                               <IconButton
                                 size="small"
-                                onClick={() => handleBreakdownOptionSelect(breakdown)}
-                                disabled={breakdown === 'Date' && selectedBreakdowns.length <= 1}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSearchFilterText('');
+                                }}
                                 sx={{
-                                  width: 16,
-                                  height: 16,
+                                  width: 20,
+                                  height: 20,
                                   p: 0,
                                   '&:hover': {
                                     backgroundColor: 'action.hover'
                                   }
                                 }}
                               >
-                                <Icon icon="tabler:x" sx={{ fontSize: '12px', color: 'text.secondary' }} />
+                                <Icon icon='tabler:x' sx={{ fontSize: '14px', color: 'text.secondary' }} />
                               </IconButton>
-                            </Box>
-                          ))}
-                        </Box>
-                      )}
-
-                      <Button
-                        variant='text'
-                        startIcon={<Icon icon='tabler:plus' />}
-                        onClick={handleBreakdownsDropdownOpen}
-                        sx={{
-                          color: 'primary.main',
-                          textTransform: 'none',
-                          fontWeight: 500,
-                          position: 'relative',
-                          '&:hover': {
-                            backgroundColor: 'primary.light',
-                            color: 'primary.contrastText'
-                          }
-                        }}
-                      >
-                        Add
-                      </Button>
-                    </Box>
-
-                    {/* Vertical Divider */}
-                    <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
-
-                    {/* Right side - Search/Filter */}
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <TextField
-                        ref={searchFieldRef}
-                        onClick={handleSearchFilterDropdownOpen}
-                        size='small'
-                        sx={{
-                          minWidth: 300,
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'background.paper',
-                            borderRadius: 2,
-                            cursor: 'pointer',
-                            '& .MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'divider'
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'primary.main'
-                            },
-                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                              borderColor: 'primary.main'
-                            }
-                          }
-                        }}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position='start'>
-                              <Icon icon='tabler:filter' sx={{ color: 'text.secondary' }} />
                             </InputAdornment>
-                          ),
-                          endAdornment: (
-                            <InputAdornment position='end'>
-                              <Icon icon='tabler:chevron-down' sx={{ color: 'text.secondary', fontSize: '1rem' }} />
-                            </InputAdornment>
-                          ),
-                          inputComponent: CustomInput
+                          )
                         }}
                       />
+                      </Box>
                     </Box>
-                  </Box>
+                  </Grid>
                 </Grid>
               </Grid>
-            </Grid>
-            <Divider sx={{ m: '0 !important' }} />
 
+              <Divider sx={{ m: '0 !important' }} />
             {/* Ad Exchange Metric Buttons */}
-            <Grid container spacing={3} alignItems='center' xs={12}>
-              <Grid container alignItems='center' spacing={2} sx={{ margin: '16px', width: 'calc(100% - 32px)' }}>
+            <Grid container spacing={3} alignItems='center'>
+              <Grid container alignItems='center' spacing={2} sx={{ width: 'calc(100% - 32px)', margin: 0, paddingLeft: "16px", paddingTop: "16px" }}>
                 <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start' }}>
                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
                       {/* All metric buttons with interactive selection */}
                       {[
@@ -2184,8 +2766,13 @@ const SiteTable = () => {
                         return (
                           <Button
                             key={metric.label}
-                            variant={isSelected ? 'contained' : 'outlined'}
-                            startIcon={<Icon icon={isSelected ? 'tabler:check' : metric.icon} />}
+                            variant='text'
+                            startIcon={
+                              <Icon 
+                                icon={isSelected ? 'tabler:check' : ""} 
+                                style={isSelected ? { color: breakdownChipColors.textColor } : {}}
+                              />
+                            }
                             size='small'
                             disabled={isLastSelected}
                             onClick={() => {
@@ -2215,17 +2802,31 @@ const SiteTable = () => {
                               minWidth: 'auto',
                               px: 2,
                               py: 1,
-                              borderRadius: 2,
+                              borderRadius: '8px',
                               textTransform: 'none',
                               fontWeight: isSelected ? 600 : 400,
-                              backgroundColor: isSelected ? theme.palette.primary.main : 'transparent',
-                              color: isSelected ? theme.palette.primary.contrastText : theme.palette.text.primary,
-                              borderColor: isSelected ? theme.palette.primary.main : theme.palette.divider,
-                              '&:hover': {
-                                backgroundColor: isSelected
-                                  ? theme.palette.primary.dark
-                                  : theme.palette.action.hover,
-                                borderColor: theme.palette.primary.main
+                              backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'transparent',
+                              color: isSelected ? breakdownChipColors.textColor : theme.palette.text.primary,
+                              border: isSelected ? 'none' : `1px solid ${theme.palette.divider}`,
+                              boxShadow: 'none',
+                              '&:hover:not(.Mui-disabled)': {
+                                backgroundColor: isSelected ? breakdownChipColors.backgroundColor : '#E7E8E8 !important',
+                                border: isSelected ? 'none' : `1px solid ${theme.palette.divider}`,
+                                boxShadow: isSelected ? '0 4px 6px rgba(0, 0, 0, 0.1)' : 'none'
+                              },
+                              '&:hover.Mui-disabled': {
+                                backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'transparent'
+                              },
+                              '&.Mui-disabled': {
+                                backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'transparent',
+                                opacity: 0.6,
+                                '&:hover': {
+                                  backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'transparent',
+                                  boxShadow: 'none'
+                                }
+                              },
+                              '& .MuiButton-startIcon': {
+                                color: isSelected ? breakdownChipColors.textColor : 'inherit'
                               }
                             }}
                           >
@@ -2236,124 +2837,397 @@ const SiteTable = () => {
                     </Box>
 
                     {/* Edit icon */}
-                    {/* <IconButton size='small' sx={{ ml: 2 }}>
-                      <Icon icon='tabler:edit' />
-                    </IconButton> */}
+                    <IconButton 
+                      size='small' 
+                      sx={{ ml: 2, color: 'text.secondary' }}
+                      onClick={() => {
+                        setTempSelectedMetrics([...appliedSelections['Ad-Exchange']]);
+                        setMetricsModalOpen(true);
+                      }}
+                    >
+                      <EditIcon fill="#3c4043" />
+                    </IconButton>
                   </Box>
+
                 </Grid>
-
-                {/* Selected Metrics Display */}
-                {/* <Grid item xs={12}>
-                  <Box sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    p: 2,
-                    backgroundColor: theme.palette.action.hover,
-                    borderRadius: 2,
-                    border: `1px solid ${theme.palette.divider}`
-                  }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Icon
-                        icon='tabler:check'
-                        style={{ fontSize: 20, color: theme.palette.primary.main }}
-                      />
-                      <Typography variant='h6' sx={{ fontWeight: 600, color: theme.palette.primary.main }}>
-                        {appliedSelections['Ad-Exchange']?.length || 0} Metric{(appliedSelections['Ad-Exchange']?.length || 0) !== 1 ? 's' : ''} Selected
-                      </Typography>
-                    </Box>
-                    <Divider orientation='vertical' flexItem />
-                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                      <Typography variant='body2' color='text.secondary'>
-                        Selected:
-                      </Typography>
-                      {(appliedSelections['Ad-Exchange'] || []).map((metric, index) => (
-                        <Box key={metric} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                          <Typography variant='body2' sx={{ fontWeight: 500, color: theme.palette.primary.main }}>
-                            {metric}
-                          </Typography>
-                          {index < (appliedSelections['Ad-Exchange'] || []).length - 1 && (
-                            <Typography variant='body2' color='text.secondary'>•</Typography>
-                          )}
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                </Grid> */}
-
-                {/* <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    {appliedFiltersText
-                      .filter(filter => {
-                        // Hide country filter when byHours is true
-                        if (byHours && filter.label?.toLowerCase().includes('country')) {
-                          return false;
-                        }
-                        return true;
-                      })
-                      .map(filter => (
-                      <Box
-                        key={filter.id}
-                        sx={{
-                          position: 'relative',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          backgroundColor: 'secondary.paper',
-                          border: '1px solid',
-                          borderColor: 'secondary.main',
-                          borderRadius: '16px',
-                          padding: '6px 12px 6px 12px',
-                          fontSize: '13px',
-                          color: 'secondary.light',
-                          maxWidth: '400px'
-                        }}
-                      >
-                        <Typography
-                          variant='body2'
-                          sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: '13px',
-                          }}
-                        >
-                          {filter.label} asd
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Box>
-                </Grid> */}
               </Grid>
             </Grid>
 
-            <Divider sx={{ m: '0 !important' }} />
+            {/* Metrics Selection Modal */}
+            <Dialog
+              open={metricsModalOpen}
+              onClose={() => setMetricsModalOpen(false)}
+              maxWidth="sm"
+              fullWidth
+              PaperProps={{
+                sx: {
+                  borderRadius: 2,
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)'
+                }
+              }}
+            >
+              <DialogTitle sx={{ pb: 1, pt: 3, px: 3 }}>
+                <Typography variant="h6" sx={{ fontWeight: 500, fontSize: '1.25rem' }}>
+                  Pick your metrics
+                </Typography>
+              </DialogTitle>
+              <DialogContent sx={{ padding: '0 !important' }}>
 
+                {/* Two Panel Layout */}
+                <Box sx={{ display: 'flex', height: 400, borderTop: `1px solid ${theme.palette.divider}` }}>
+                  {/* Left Panel - Recommended Metrics */}
+                  <Box sx={{ flex: 1, borderRight: `1px solid ${theme.palette.divider}`, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}> 
+                    {/* Sticky Search Bar Header */} 
+                    <Box sx={{ 
+                      position: 'sticky', 
+                      top: 0, 
+                      zIndex: 1, 
+                      backgroundColor: 'background.paper', 
+                      borderBottom: `1px solid ${theme.palette.divider}`, 
+                      boxShadow: 'none' 
+                    }}>
+                      <TextField
+                        size="small"
+                        value={metricsSearchText}
+                        onChange={(e) => setMetricsSearchText(e.target.value)}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <SearchIcon fill="#3C4043" width={20} height={20} />
+                            </InputAdornment>
+                          )
+                        }}
+                        sx={{
+                          flex: 1,
+                          width: '100%',
+                          '& .MuiOutlinedInput-root': {
+                            border: 'none',
+                            boxShadow: 'none',
+                            '&:hover': {
+                              boxShadow: 'none'
+                            },
+                            '&.Mui-focused': {
+                              boxShadow: 'none'
+                            }
+                          },
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            border: 'none'
+                          },
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            border: 'none'
+                          },
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            border: 'none'
+                          }
+                        }}
+                      />
+                    </Box>
+                    {/* Scrollable Metrics List */}
+                    <List sx={{ p: 0, overflowY: 'auto', flex: 1 }}>
+                      {[
+                        { label: 'Impressions', icon: 'tabler:presentation' },
+                        { label: 'CTR', icon: 'tabler:click' },
+                        { label: 'ECPM', icon: 'cil:chart-line' },
+                        { label: 'Revenue', icon: 'tabler:coin' },
+                        { label: 'Clicks', icon: 'ic:baseline-ads-click' },
+                        { label: 'Match Rate', icon: 'tabler:a-b' },
+                        { label: 'Cost Per Click', icon: 'streamline-freehand:e-commerce-click-buy' },
+                        { label: 'Total Requests', icon: 'tabler:location-check' }
+                      ]
+                        .filter(metric => 
+                          metric.label.toLowerCase().includes(metricsSearchText.toLowerCase())
+                        )
+                        .map((metric) => { 
+                          const isSelected = tempSelectedMetrics.includes(metric.label);
+                          return ( 
+                            <ListItem
+                              key={metric.label} 
+                              sx={{
+                                px: 2,
+                                py: 2.5,
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: theme.palette.action.hover
+                                },
+                              }}
+                              onClick={() => {
+                                if (isSelected) {
+                                  if (tempSelectedMetrics.length > 1) {
+                                    setTempSelectedMetrics(tempSelectedMetrics.filter(m => m !== metric.label));
+                                  }
+                                } else {
+                                  setTempSelectedMetrics([...tempSelectedMetrics, metric.label]);
+                                }
+                              }}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                sx={{ mr: 1.5, p: 0.5 }}
+                              />
+                              <Typography variant="body2" color="#000000">
+                                {metric.label}
+                              </Typography>
+                              <Tooltip title={`Learn more about ${metric.label}`} arrow>
+                                <IconButton
+                                  size="small"
+                                  sx={{ p: 0.5, color: 'text.secondary', ml: 'auto' }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Info tooltip or action
+                                  }}
+                                >
+                                  <InfoIcon fill="#0000008A" width={18} height={18} />
+                                </IconButton>
+                              </Tooltip>
+                            </ListItem>
+                          );
+                        })}
+                    </List>
+                  </Box>
+
+                  {/* Right Panel - Selected Metrics */}
+                  <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    {/* Sticky Header with Selected Count and Clear All */}
+                    <Box sx={{ 
+                    position: 'sticky', 
+                      top: 0, 
+                      zIndex: 1, 
+                      backgroundColor: 'background.paper',
+                      borderBottom: `1px solid ${theme.palette.divider}`
+                    }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, p: "6.5px" }}>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                          {tempSelectedMetrics.length} selected
+                        </Typography>
+                        {tempSelectedMetrics.length > 0 && (
+                          <Button
+                            variant="text"
+                            size="small"
+                            onClick={() => {
+                              if (tempSelectedMetrics.length > 1) {
+                                setTempSelectedMetrics(['Impressions']); // Keep at least one
+                              }
+                            }}
+                            sx={{
+                              textTransform: 'none',
+                              color: '#1976d2',
+                              minWidth: 'auto',
+                              px: 0.5,
+                              backgroundColor: 'transparent !important',
+                              '&:hover': {
+                                backgroundColor: 'transparent !important'
+                              },
+                              '&.MuiButton-root:hover': {
+                                backgroundColor: 'transparent !important'
+                              },
+                              '&.MuiButton-text:hover': {
+                                backgroundColor: 'transparent !important'
+                              },
+                              '&.MuiButton-textPrimary:hover': {
+                                backgroundColor: 'transparent !important'
+                              }
+                            }}
+                          >
+                            Clear all
+                          </Button>
+                        )}
+                      </Box>
+                    </Box>  
+                    {/* Scrollable Selected Metrics List */}
+                    <List sx={{ p: 0, overflowY: 'auto', flex: 1 }}>
+                      {tempSelectedMetrics.length === 0 ? (
+                        <ListItem>
+                          <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                            No metrics selected
+                          </Typography>
+                        </ListItem>
+                      ) : (
+                        tempSelectedMetrics.map((metric, index) => (
+                          <ListItem
+                            key={`${metric}-${index}`}
+                            draggable
+                            onDragStart={(e) => {
+                              setDraggedIndex(index);
+                              e.dataTransfer.effectAllowed = 'move';
+                              e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
+                              e.currentTarget.style.opacity = '0.5';
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.dataTransfer.dropEffect = 'move';
+                              const draggedOver = e.currentTarget;
+                              const rect = draggedOver.getBoundingClientRect();
+                              const midpoint = rect.top + rect.height / 2;
+                              if (e.clientY < midpoint) {
+                                draggedOver.style.borderTop = `2px solid ${theme.palette.primary.main}`;
+                                draggedOver.style.borderBottom = 'none';
+                              } else {
+                                draggedOver.style.borderBottom = `2px solid ${theme.palette.primary.main}`;
+                                draggedOver.style.borderTop = 'none';
+                              }
+                            }}
+                            onDragLeave={(e) => {
+                              e.currentTarget.style.borderTop = 'none';
+                              e.currentTarget.style.borderBottom = `1px solid ${theme.palette.divider}`;
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.currentTarget.style.borderTop = 'none';
+                              e.currentTarget.style.borderBottom = `1px solid ${theme.palette.divider}`;
+                              
+                              if (draggedIndex === null || draggedIndex === index) return;
+                              
+                              const newMetrics = [...tempSelectedMetrics];
+                              const draggedItem = newMetrics[draggedIndex];
+                              newMetrics.splice(draggedIndex, 1);
+                              
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              const midpoint = rect.top + rect.height / 2;
+                              const insertIndex = e.clientY < midpoint ? index : index + 1;
+                              
+                              newMetrics.splice(insertIndex, 0, draggedItem);
+                              setTempSelectedMetrics(newMetrics);
+                              setDraggedIndex(null);
+                            }}
+                            onDragEnd={(e) => {
+                              e.currentTarget.style.opacity = '1';
+                              e.currentTarget.style.borderTop = 'none';
+                              e.currentTarget.style.borderBottom = `1px solid ${theme.palette.divider}`;
+                              setDraggedIndex(null);
+                            }}
+                            sx={{
+                              px: 2,
+                              py: 1.5,
+                              borderBottom: `1px solid ${theme.palette.divider}`,
+                              cursor: 'move',
+                              transition: 'background-color 0.2s',
+                              '&:hover': {
+                                backgroundColor: theme.palette.action.hover
+                              },
+                              '&.dragging': {
+                                opacity: 0.5
+                              }
+                            }}
+                          >
+                            <DragIndicatorIcon fill="#959899" width={24} height={24} style={{ marginRight: 12 }} />
+                            <Typography variant="body2" color="#000000" sx={{ flex: 1 }}>
+                              {metric}
+                            </Typography>
+                            <IconButton
+                              size="small"
+                              sx={{ p: 3, color: 'text.secondary' }}
+                              onClick={() => {
+                                if (tempSelectedMetrics.length > 1) {
+                                  setTempSelectedMetrics(tempSelectedMetrics.filter((_, i) => i !== index));
+                                }
+                              }}
+                            >
+                              <CloseIcon fill="#3C4043" width={24} height={24} />
+                            </IconButton>
+                          </ListItem>
+                        ))
+                      )}
+                    </List>
+                  </Box>
+                </Box>
+
+                {/* Footer Buttons */}
+                <Box sx={{ py: 3, px: 4, borderTop: `1px solid ${theme.palette.divider}`, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                  <Button
+                    onClick={() => {
+                      setMetricsModalOpen(false);
+                      setMetricsSearchText('');
+                    }}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={() => {
+                      if (tempSelectedMetrics.length > 0) {
+                        setAppliedSelections(prev => ({
+                          ...prev,
+                          'Ad-Exchange': tempSelectedMetrics
+                        }));
+                        setMetricsModalOpen(false);
+                        setMetricsSearchText('');
+                      }
+                    }}
+                    disabled={tempSelectedMetrics.length === 0}
+                    sx={{ textTransform: 'none' }}
+                  >
+                    Apply
+                  </Button>
+                </Box>
+              </DialogContent>
+            </Dialog>
+
+            {/* <Divider sx={{ m: '0 !important' }} /> */}
+
+            <Box sx={{ width: '100%', p:4 }}> 
+              {/* Demo Recharts Chart */}
+              <Box sx={{ width: '100%', p:4, border: `1px solid ${theme.palette.divider}`, borderRadius: '8px' }}>
+                <Card sx={{ p: 3, boxShadow: 'none' }}>
+                  <Typography variant='h6' sx={{ mb: 3, fontWeight: 600 }}>Demo Chart - Ad Exchange Performance</Typography>
+                  <Box sx={{ width: '100%', height: 300, minHeight: 300 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={[
+                          { name: 'Mon', Impressions: 4000, Clicks: 2400, Revenue: 2400 },
+                          { name: 'Tue', Impressions: 3000, Clicks: 1398, Revenue: 2210 },
+                          { name: 'Wed', Impressions: 2000, Clicks: 9800, Revenue: 2290 },
+                          { name: 'Thu', Impressions: 2780, Clicks: 3908, Revenue: 2000 },
+                          { name: 'Fri', Impressions: 1890, Clicks: 4800, Revenue: 2181 },
+                          { name: 'Sat', Impressions: 2390, Clicks: 3800, Revenue: 2500 },
+                          { name: 'Sun', Impressions: 3490, Clicks: 4300, Revenue: 2100 },
+                        ]}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <RechartsTooltip content={<CustomTooltip />} />
+                        <RechartsLegend />
+                        <Area type="monotone" dataKey="Impressions" stroke="#8884d8" fill="#8884d8" fillOpacity={0.2} />
+                        <Area type="monotone" dataKey="Clicks" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.2} />
+                        <Area type="monotone" dataKey="Revenue" stroke="#ffc658" fill="#ffc658" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </Box>
+                </Card>
+              </Box>
+            </Box>
+
+            {/* <Divider sx={{ m: '0 !important' }} /> */}
             <Box
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 height: 'auto',
-                width: '100%'
+                width: '100%',
+                padding: '16px',
               }}
-            >
+              >
               {/* Table Content with Custom Footer */}
               <Box
                 sx={{
+                  border: `1px solid ${theme.palette.divider}`,
                   overflowX: 'auto',
                   overflowY: 'hidden',
                   width: '100%',
                   '&::-webkit-scrollbar': {
-                    height: '8px'
+                    height: '4px'
                   },
                   '&::-webkit-scrollbar-track': {
-                    backgroundColor: 'rgba(0,0,0,0.1)',
+                    backgroundColor: theme?.palette?.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
                     borderRadius: '4px'
                   },
                   '&::-webkit-scrollbar-thumb': {
-                    backgroundColor: 'rgba(0,0,0,0.3)',
+                    backgroundColor: theme?.palette?.mode === 'dark' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.22)',
                     borderRadius: '4px',
                     '&:hover': {
-                      backgroundColor: 'rgba(0,0,0,0.5)'
+                      backgroundColor: theme?.palette?.mode === 'dark' ? 'rgba(255,255,255,0.32)' : 'rgba(0,0,0,0.32)'
                     }
                   }
                 }}
@@ -2381,35 +3255,136 @@ const SiteTable = () => {
                   }}
                   sx={{
                     minWidth: 'max-content',
+                    border: 'none',
                     '& .MuiDataGrid-main': {
                       overflow: 'visible !important'
                     },
                     '& .MuiDataGrid-virtualScroller': {
                       overflow: 'visible !important'
                     },
+                    '& .MuiDataGrid-iconSeparator': {
+                      display: 'none'
+                    },
                     '& .MuiDataGrid-footerContainer': {
-                      // overflow: 'visible !important',
-                      borderTop: '1px solid',
-                      borderColor: 'divider'
+                      borderTop: `none`,
+                      borderBottom: `1px solid ${theme.palette.divider} !important`
                     },
                     '& .MuiDataGrid-pagination': {
                       display: 'none !important' // Hide default pagination
+                    },
+                    // Cell borders and styling
+                    '& .MuiDataGrid-cell': {
+                      borderRight: `1px solid ${theme.palette.divider}`,
+                      borderBottom: `1px solid ${theme.palette.divider}`,
+                      padding: '12px 16px',
+                      fontSize: '0.875rem',
+                      color: 'text.secondary',
+                      justifyContent: 'flex-end',
+                      textAlign: 'right'
+                    },
+                    '& .MuiDataGrid-cellContent': {
+                      width: '100%',
+                      textAlign: 'right'
+                    },
+                    '& .MuiDataGrid-cell .MuiTypography-root': {
+                      width: '100%',
+                      textAlign: 'right'
+                    },
+                    '& .MuiDataGrid-cell .MuiBox-root': {
+                      width: '100%',
+                      justifyContent: 'flex-end'
+                    },
+                    // Keep Site column left-aligned
+                    '& .MuiDataGrid-cell[data-field="site"]': {
+                      justifyContent: 'flex-start',
+                      textAlign: 'left'
+                    },
+                    '& .MuiDataGrid-cell[data-field="site"] .MuiDataGrid-cellContent': {
+                      textAlign: 'left'
+                    },
+                    '& .MuiDataGrid-cell[data-field="site"] .MuiTypography-root': {
+                      textAlign: 'left'
+                    },
+                    '& .MuiDataGrid-cell[data-field="site"] .MuiBox-root': {
+                      justifyContent: 'flex-start'
+                    },
+                    '& .MuiDataGrid-cell:first-of-type': {
+                      borderLeft: 'none'
+                    },
+                    '& .MuiDataGrid-cell:last-of-type': {
+                      borderRight: 'none'
+                    },
+                    // Header styling
+                    '& .MuiDataGrid-columnHeaders': {
+                      backgroundColor: theme?.palette?.mode === 'dark' ? '#1F1F1F' : '#f5f5f5',
+                      borderTop: 'none',
+                      borderLeft: 'none',
+                      borderRight: `none`,
+                    },
+                    '& .MuiDataGrid-columnHeaders .MuiDataGrid-columnHeader:last-of-type': {
+                      borderRight: 'none'
+                    },
+                    '& .MuiDataGrid-columnHeader': {
+                      borderRight: `1px solid ${theme.palette.divider}`,
+                      padding: '12px 16px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      color: 'text.secondary'
+                    },
+                    '& .MuiDataGrid-columnHeaderTitleContainer': {
+                      justifyContent: 'flex-end !important'
+                    },
+                    '& .MuiDataGrid-columnHeaderTitle': {
+                      width: '100%',
+                      textAlign: 'right'
+                    },
+                    '& .MuiDataGrid-columnHeader[data-field="site"] .MuiDataGrid-columnHeaderTitleContainer': {
+                      justifyContent: 'flex-start'
+                    },
+                    '& .MuiDataGrid-columnHeader[data-field="site"] .MuiDataGrid-columnHeaderTitle': {
+                      textAlign: 'left'
+                    },
+                    '& .MuiDataGrid-columnHeader[data-field="actions"]': {
+                      borderRight: `none`
+                    },
+                    '& .MuiDataGrid-columnHeader:focus': {
+                      outline: 'none'
+                    },
+                    '& .MuiDataGrid-columnHeader:focus-within': {
+                      outline: 'none'
+                    },
+                    // Row styling
+                    '& .MuiDataGrid-row': {
+                      borderLeft: 'none',
+                      borderRight: `none`
+                    },
+                    '& .MuiDataGrid-row:last-child .MuiDataGrid-cell': {
+                      borderBottom: `none`
+                    },
+                    // Remove default borders
+                    '& .MuiDataGrid-root': {
+                      border: 'none'
+                    },
+                    '& .MuiDataGrid-withBorder': {
+                      borderRight: 'none'
                     }
                   }}
                 />
               </Box>
 
-              {/* Separate Pagination - Matching MUI DataGrid Design */}
+              {/* Separate Pagination - Matching Screenshot Design */}
               <Box
                 sx={{
                   display: 'flex',
                   justifyContent: 'flex-end',
                   alignItems: 'center',
                   padding: '8px 16px',
-                  borderTop: '1px solid',
-                  borderColor: 'divider',
-                  backgroundColor: 'background.paper',
-                  minHeight: '52px' // Match DataGrid pagination height
+                  backgroundColor: theme?.palette?.mode === 'dark' ? '#111111' : '#FFFFFF',
+                  minHeight: '52px',
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                  borderLeft: `1px solid ${theme.palette.divider}`,
+                  borderRight: `1px solid ${theme.palette.divider}`
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -2422,36 +3397,36 @@ const SiteTable = () => {
                         fontWeight: 400
                       }}
                     >
-                      Rows per page:
+                      Show rows
                     </Typography>
-                    <FormControl size="small" sx={{ maxWidth: 70 }}>
+                    <FormControl size="small" sx={{ minWidth: 70 }}>
                       <Select
                         value={pageSize}
                         onChange={(e) => handlePageSizeChange(e.target.value)}
-                        variant="standard"
-                        disableUnderline
+                        variant="outlined"
                         sx={{
                           fontSize: '0.875rem',
                           fontWeight: 400,
                           color: 'text.secondary',
-                          '& .MuiSelect-select': {
-                            padding: '0 8px !important',
-                            paddingRight: '24px !important',
-                            minWidth: 'auto !important'
+                          height: '32px',
+                          maxWidth: '70px !important',
+                          '& .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#E6E6E7'
                           },
-                          '& .MuiSelect-select.MuiInputBase-input': {
-                            minWidth: 'auto !important'
+                          '&:hover .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#2D5BC7'
                           },
-                          '& .MuiSelect-select.MuiInputBase-input.MuiInput-input': {
-                            minWidth: 'auto !important'
+                          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                            borderColor: '#2D5BC7'
                           },
-                          '& .MuiSelect-select.MuiInputBase-input.MuiInput-input:focus': {
-                            backgroundColor: 'transparent !important',
-                            borderRadius: '0 !important'
+                          '&& .MuiSelect-select': {
+                            padding: '6px 32px 6px 12px !important',
+                            minWidth: '25px !important'
                           },
                           '& .MuiSelect-icon': {
                             color: 'text.secondary',
-                            fontSize: '1rem'
+                            fontSize: '1rem',
+                            right: '8px'
                           }
                         }}
                       >
@@ -2472,74 +3447,175 @@ const SiteTable = () => {
                       fontWeight: 400
                     }}
                   >
-                    {`${(pageNumber - 1) * pageSize + 1}-${Math.min(pageNumber * pageSize, totalRow)} of ${totalRow}`}
+                    {`${(pageNumber - 1) * pageSize + 1} - ${Math.min(pageNumber * pageSize, totalRow)} of ${totalRow}`}
                   </Typography>
 
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    {/* First page button */}
+                    <Button
+                      size="small"
+                      onClick={() => handlePageChange(0)}
+                      disabled={pageNumber <= 1}
+                      sx={{
+                        minWidth: 'auto',
+                        padding: '5px',
+                        borderRadius: '4px',
+                        border: `1px solid ${theme.palette.divider}`,
+                        backgroundColor:
+                          pageNumber <= 1
+                            ? (theme.palette.mode === 'dark' ? '#111111' : '#EBEBEB')
+                            : (theme.palette.mode === 'dark' ? '#111111' : '#FFFFFF'),
+                        color: pageNumber <= 1 ? theme.palette.text.disabled : theme.palette.text.secondary,
+                        '&&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#111111 !important' : '#ffffff !important',
+                          borderColor:'#2D5BC7',
+                          color: '#2D5BC7'
+                        },
+                        '&&.Mui-disabled': {
+                          color: theme.palette.text.disabled,
+                          backgroundColor:
+                            pageNumber <= 1
+                              ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06) !important' : '#EBEBEB !important')
+                              : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.14) !important' : 'rgba(0,0,0,0.10) !important')
+                        }
+                      }}
+                    >
+                      <Icon icon="tabler:chevrons-left" width="20" height="20" />
+                    </Button>
+                    {/* Previous page button */}
                     <Button
                       size="small"
                       onClick={() => handlePageChange(pageNumber - 2)}
                       disabled={pageNumber <= 1}
                       sx={{
                         minWidth: 'auto',
-                        padding: '8px',
-                        color: pageNumber <= 1 ? 'action.disabled' : 'action.active',
-                        '&:hover': {
-                          backgroundColor: pageNumber <= 1 ? 'transparent' : 'action.hover'
+                        padding: '5px',
+                        borderRadius: '4px',
+                        border: `1px solid ${theme.palette.divider}`,
+                        backgroundColor:
+                          pageNumber <= 1
+                            ? (theme.palette.mode === 'dark' ? '#111111' : '#EBEBEB') 
+                            : (theme.palette.mode === 'dark' ? '#111111' : '#FFFFFF'),
+                        color: pageNumber <= 1 ? theme.palette.text.disabled : theme.palette.text.secondary,
+                        '&&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#111111 !important' : '#ffffff !important',
+                          borderColor:'#2D5BC7',
+                          color: '#2D5BC7'
                         },
-                        '&:disabled': {
-                          color: 'action.disabled'
+                        '&&.Mui-disabled': {
+                          color: theme.palette.text.disabled,
+                          backgroundColor:
+                            pageNumber <= 1
+                              ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06) !important' : '#EBEBEB !important')
+                              : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.14) !important' : 'rgba(0,0,0,0.10) !important')
                         }
                       }}
                     >
-                      <Icon icon="icon-park-outline:left" width="20" height="20" />
+                      <Icon icon="tabler:chevron-left" width="20" height="20" />
                     </Button>
+                    {/* Next page button */}
                     <Button
                       size="small"
                       onClick={() => handlePageChange(pageNumber)}
                       disabled={pageNumber * pageSize >= totalRow}
                       sx={{
                         minWidth: 'auto',
-                        padding: '8px',
-                        color: pageNumber * pageSize >= totalRow ? 'action.disabled' : 'action.active',
-                        '&:hover': {
-                          backgroundColor: pageNumber * pageSize >= totalRow ? 'transparent' : 'action.hover'
+                        padding: '5px',
+                        borderRadius: '4px',
+                        border: `1px solid ${theme.palette.divider}`,
+                        backgroundColor:
+                          pageNumber * pageSize >= totalRow
+                            ? (theme.palette.mode === 'dark' ? '#111111' : '#EBEBEB')
+                            : (theme.palette.mode === 'dark' ? '#111111' : '#FFFFFF'),
+                        color:
+                          pageNumber * pageSize >= totalRow
+                            ? theme.palette.text.disabled
+                            : theme.palette.text.secondary,
+                        '&&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#111111 !important' : '#ffffff !important',
+                          borderColor:'#2D5BC7',
+                          color: '#2D5BC7'
                         },
-                        '&:disabled': {
-                          color: 'action.disabled'
+                        '&&.Mui-disabled': {
+                          color: theme.palette.text.disabled,
+                          backgroundColor:
+                            pageNumber * pageSize >= totalRow
+                              ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06) !important' : '#EBEBEB !important')
+                              : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.14) !important' : 'rgba(0,0,0,0.10) !important')
                         }
                       }}
                     >
-                      <Icon icon="icon-park-outline:right" width="20" height="20" />
+                      <Icon icon="tabler:chevron-right" width="20" height="20" />
+                    </Button>
+                    {/* Last page button */}
+                    <Button
+                      size="small"
+                      onClick={() => handlePageChange(Math.ceil(totalRow / pageSize) - 1)}
+                      disabled={pageNumber * pageSize >= totalRow}
+                      sx={{
+                        minWidth: 'auto',
+                        padding: '5px',
+                        borderRadius: '4px',
+                        border: `1px solid ${theme.palette.divider}`,
+                        backgroundColor:
+                          pageNumber * pageSize >= totalRow
+                            ? (theme.palette.mode === 'dark' ? '#111111' : '#EBEBEB')
+                            : (theme.palette.mode === 'dark' ? '#111111' : '#FFFFFF'),
+                        color:
+                          pageNumber * pageSize >= totalRow
+                            ? theme.palette.text.disabled
+                            : theme.palette.text.secondary,
+                        '&&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#111111 !important' : '#ffffff !important',
+                          borderColor:'#2D5BC7',
+                          color: '#2D5BC7'
+                        },
+                        '&&.Mui-disabled': {
+                          color: theme.palette.text.disabled,
+                          backgroundColor:
+                            pageNumber * pageSize >= totalRow
+                              ? (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06) !important' : '#EBEBEB !important')
+                              : (theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.14) !important' : 'rgba(0,0,0,0.10) !important')
+                        }
+                      }}
+                    >
+                      <Icon icon="tabler:chevrons-right" width="20" height="20" />
                     </Button>
                   </Box>
                 </Box>
               </Box>
             </Box>
+              </Grid>
+            </Grid>
           </Card>
-          <AdvancedMUIStyleFilter
-            siteList={siteList}
-            setSelectedCountries={setSelectedCountries}
-            setSelectedSites={setSelectedSites}
-            startDate={startDate}
-            endDate={endDate}
-            setStartDate={setStartDate}
-            setEndDate={setEndDate}
-            setAppliedFiltersText={setAppliedFiltersText}
-            handleFilter={handleFilter}
-            siteTableLoading={appliedFilters.byHours ? hoursTableLoading : appliedFilters.byAdUnit ? adunitTableLoading : siteTableLoading}
-            handleResetFilter={handleResetFilter}
-            open={open}
-            setOpen={setOpen}
-            setByDated={setByDated}
-            setByCountry={setByCountry}
-            setByAdUnit={setByAdUnit}
-            setByHours={setByHours}
-            tempSelections={tempSelections}
-            setTempSelections={setTempSelections}
-            appliedSelections={appliedSelections}
-            setAppliedSelections={setAppliedSelections}
-          />
+          {
+            open && (<>
+              <AdvancedMUIStyleFilter
+                siteList={siteList}
+                setSelectedCountries={setSelectedCountries}
+                setSelectedSites={setSelectedSites}
+                startDate={startDate}
+                endDate={endDate}
+                setStartDate={setStartDate}
+                setEndDate={setEndDate}
+                setAppliedFiltersText={setAppliedFiltersText}
+                handleFilter={handleFilter}
+                siteTableLoading={appliedFilters.byHours ? hoursTableLoading : appliedFilters.byAdUnit ? adunitTableLoading : siteTableLoading}
+                handleResetFilter={handleResetFilter}
+                open={open}
+                setOpen={setOpen}
+                setByDated={setByDated}
+                setByCountry={setByCountry}
+                setByAdUnit={setByAdUnit}
+                setByHours={setByHours}
+                tempSelections={tempSelections}
+                setTempSelections={setTempSelections}
+                appliedSelections={appliedSelections}
+                setAppliedSelections={setAppliedSelections}
+              />
+            </>)
+          }
+          
           {addUserOpen && (
             <AddSiteTable
               open={addUserOpen}
@@ -2547,8 +3623,8 @@ const SiteTable = () => {
               siteTableRefetch={() => setAppliedFilters(prev => ({ ...prev }))} // Trigger refetch
             />
           )}
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Custom Date Picker Popover */}
       <Popover
@@ -2808,7 +3884,9 @@ const SiteTable = () => {
 
           {/* Filter Options List */}
           <Box sx={{ maxHeight: '300px', overflowY: 'auto' }}>
-            {filteredBreakdownsOptions.map((option, index) => (
+            {filteredBreakdownsOptions.map((option, index) => {
+              const isSelected = selectedBreakdowns.includes(option);
+              return (
               <Box
                 key={option}
                 onClick={() => handleBreakdownOptionSelect(option)}
@@ -2820,14 +3898,32 @@ const SiteTable = () => {
                   cursor: 'pointer',
                   borderBottom: index < filteredBreakdownsOptions.length - 1 ? '1px solid' : 'none',
                   borderColor: 'divider',
+                    backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'transparent',
                   '&:hover': {
-                    backgroundColor: 'action.hover'
+                      backgroundColor: isSelected ? breakdownChipColors.backgroundColor : 'action.hover'
                   }
                 }}
               >
-                <Typography variant="body2" sx={{ color: 'text.primary' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {isSelected && (
+                      <Icon
+                        icon="tabler:check"
+                        sx={{
+                          color: breakdownChipColors.textColor,
+                          fontSize: '1rem'
+                        }}
+                      />
+                    )}
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: isSelected ? breakdownChipColors.textColor : 'text.primary',
+                        fontWeight: isSelected ? 500 : 400
+                      }}
+                    >
                   {option}
                 </Typography>
+                  </Box>
                 <Icon
                   icon="tabler:info-circle"
                   sx={{
@@ -2837,7 +3933,8 @@ const SiteTable = () => {
                   }}
                 />
               </Box>
-            ))}
+              );
+            })}
           </Box>
         </Box>
       </Popover>
@@ -3612,6 +4709,76 @@ const SiteTable = () => {
           </Button>
         </Box>
       </Popover>
+
+      {/* Header Menu */}
+      <Menu
+        anchorEl={headerMenuAnchorEl}
+        open={headerMenuOpen}
+        onClose={handleHeaderMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: '180px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1
+          }
+        }}
+      >
+        <MenuItem onClick={handleHeaderMenuClose}>
+          <Typography variant='body2'>Duplicate</Typography>
+        </MenuItem>
+        <MenuItem onClick={handleHeaderMenuClose}>
+          <Typography variant='body2'>Rename</Typography>
+        </MenuItem>
+        <MenuItem onClick={handleHeaderMenuClose}>
+          <Typography variant='body2' color='error'>Delete</Typography>
+        </MenuItem>
+      </Menu>
+
+      {/* Report Menu */}
+      <Menu
+        anchorEl={reportMenuAnchorEl}
+        open={reportMenuOpen}
+        onClose={handleReportMenuClose}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'right',
+        }}
+        transformOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            minWidth: '180px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            border: '1px solid',
+            borderColor: 'divider',
+            mt: 1
+          }
+        }}
+      >
+        <MenuItem onClick={handleReportMenuClose}>
+          <Typography variant='body2'>Duplicate</Typography>
+        </MenuItem>
+        <MenuItem onClick={handleReportMenuClose}>
+          <Typography variant='body2'>Rename</Typography>
+        </MenuItem>
+        <MenuItem onClick={handleReportMenuClose}>
+          <Typography variant='body2' color='error'>Delete</Typography>
+        </MenuItem>
+      </Menu>
     </>
   )
 }

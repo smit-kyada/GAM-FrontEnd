@@ -3,7 +3,7 @@ const DefaultPalette = (mode, skin) => {
   const whiteColor = '#FFF'
   const lightColor = '51, 48, 60'
   const darkColor = '228, 230, 244'
-  const darkPaperBgColor = '#0e0e23'
+  const darkPaperBgColor = '#111111'
   const mainColor = mode === 'light' ? lightColor : darkColor
 
   const defaultBgColor = () => {
@@ -13,7 +13,7 @@ const DefaultPalette = (mode, skin) => {
       return darkPaperBgColor
     } else if (mode === 'light') {
       return '#F8F7FA'
-    } else return '#24243e'
+    } else return '#111111'
   }
 
   return {
@@ -23,10 +23,10 @@ const DefaultPalette = (mode, skin) => {
       light: lightColor,
       lightPaperBg: whiteColor,
       darkPaperBg: darkPaperBgColor,
-      bodyBg: mode === 'light' ? '#F8F7FA' : '#24243e',
+      bodyBg: mode === 'light' ? '#F8F7FA' : '#111111',
       trackBg: mode === 'light' ? '#F1F0F2' : '#3B405B',
-      avatarBg: mode === 'light' ? '#F6F6F7' : '#0e0e23',
-      tableHeaderBg: mode === 'light' ? '#F6F6F7' : '#0e0e23'
+      avatarBg: mode === 'light' ? '#F6F6F7' : '#111111',
+      tableHeaderBg: mode === 'light' ? '#F6F6F7' : '#111111'
     },
     mode: mode,
     common: {
@@ -35,8 +35,8 @@ const DefaultPalette = (mode, skin) => {
     },
     primary: {
       light: '#E0E0E0',
-      main: '#B0B0B0',
-      dark: '#4A4A4A',
+      main: '#3872FA',
+      dark: '#2D5BC7',
       contrastText: whiteColor
     },
     secondary: {
@@ -97,7 +97,7 @@ const DefaultPalette = (mode, skin) => {
     },
     action: {
       active: `rgba(${mainColor}, 0.54)`,
-      hover: `rgba(${mainColor}, 0.04)`,
+      hover: mode === 'light' ? '#F1F1F1' : '#1F1F1F',
       selected: `rgba(${mainColor}, 0.08)`,
       disabled: `rgba(${mainColor}, 0.26)`,
       disabledBackground: `rgba(${mainColor}, 0.12)`,

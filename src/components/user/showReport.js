@@ -2,7 +2,6 @@ import Switch from '@mui/material/Switch'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import { useEffect, useState } from 'react'
 import { useMutation } from '@apollo/client'
-
 import toast from 'react-hot-toast'
 import { UPDATE_USER } from 'src/graphql/mutation/user'
 

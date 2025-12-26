@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { ApolloClient, createHttpLink, InMemoryCache } from "@apollo/client";
+import { ApolloClient, createHttpLink, InMemoryCache, ApolloLink, split } from "@apollo/client";
 import { setContext } from '@apollo/client/link/context';
 import { persistCache } from "apollo-cache-persist";
 import { onError } from "@apollo/client/link/error";
-import { ApolloLink, split } from '@apollo/client';
 import { getMainDefinition } from "apollo-utilities";
+import toast from 'react-hot-toast';
 
 // import { createBrowserHistory } from 'history';
 // import { WebSocketLink } from "@apollo/client/link/ws";
@@ -79,9 +79,34 @@ function client() {
         return { headers };
     });
 
-    const errorLink = onError(({ graphQLErrors, networkError }) => {
+    const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) => {
+        // Ignore AbortError - these are expected when queries are cancelled (component unmount, skip changes, etc.)
+        if (networkError) {
+            const isAbortError = 
+                networkError.name === 'AbortError' ||
+                networkError.name === 'AbortController' ||
+                (networkError.message && (
+                    networkError.message.includes('aborted') ||
+                    networkError.message.includes('signal is aborted') ||
+                    networkError.message.includes('The user aborted a request') ||
+                    networkError.message.includes('AbortError')
+                )) ||
+                (networkError.error && networkError.error.message && (
+                    networkError.error.message.includes('aborted') ||
+                    networkError.error.message.includes('signal is aborted')
+                ));
+            
+            if (isAbortError) {
+                // Silently ignore abort errors - they're expected during cleanup
+                return forward(operation);
+            }
+        }
+
         // console.log("🚀 ~ file: apolloClient.js:96 ~ errorLink ~ graphQLErrors:", graphQLErrors)
-        const loginUser = typeof window !== 'undefined' && JSON.parse(window.localStorage.getItem("user"))
+        const loginUser = typeof window !== 'undefined' && window.localStorage.getItem("user") 
+            ? JSON.parse(window.localStorage.getItem("user"))
+            : null;
+            
         if (graphQLErrors) {
             graphQLErrors.forEach(({ message, extensions, path }) => {
                 if (extensions.code === 'UNAUTHENTICATED') {
